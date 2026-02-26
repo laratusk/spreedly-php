@@ -1,0 +1,32 @@
+{
+  "transaction": {
+    "token": "Gt4pzm6oIxPBbKVFxdBp2Vy0yGe",
+    "transaction_type": "Credit",
+    "succeeded": true,
+    "state": "succeeded",
+    "created_at": "2024-01-15T10:15:00Z",
+    "updated_at": "2024-01-15T10:15:00Z",
+    "amount": 500,
+    "currency_code": "USD",
+    "on_test_gateway": true,
+    "reference_token": "Cq0pzm6oIxPBbKVFxdBp2Vy0yGa",
+    "gateway_token": "6DqX57I6fHgIuUkVnmUGPA3xoVyB",
+    "gateway_type": "test",
+    "gateway_transaction_id": "ref_test_123456",
+    "gateway_response_code": "1",
+    "gateway_response_message": "Successful",
+    "response": {
+      "success": true,
+      "message": "Successful",
+      "pending": false,
+      "result_unknown": false,
+      "created_at": "2024-01-15T10:15:00Z",
+      "updated_at": "2024-01-15T10:15:00Z"
+    },
+    "message": "Succeeded!",
+    "message_key": "messages.transaction_succeeded",
+    "gateway_specific_fields": {},
+    "gateway_specific_response_fields": {},
+    "test": true
+  }
+}

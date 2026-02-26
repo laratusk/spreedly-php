@@ -1,0 +1,14 @@
+{
+  "certificate": {
+    "token": "Cert123xoVyB",
+    "state": "created",
+    "common_name": "apple.pay.example.com",
+    "subject": null,
+    "cert_body": null,
+    "private_key_body": null,
+    "csr": "-----BEGIN CERTIFICATE REQUEST-----\nMIIByjCCATMCAQAwgakx...\n-----END CERTIFICATE REQUEST-----",
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:00:00Z",
+    "expires_at": null
+  }
+}

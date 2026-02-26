@@ -1,0 +1,8 @@
+{
+  "errors": [
+    {
+      "key": "errors.not_found",
+      "message": "Unable to find the specified resource."
+    }
+  ]
+}

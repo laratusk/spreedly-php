@@ -1,0 +1,28 @@
+{
+  "payment_method": {
+    "token": "56wyNnSmuA6en32YnlLFoJNFLSI",
+    "storage_state": "retained",
+    "test": true,
+    "last_four_digits": "4242",
+    "first_six_digits": "411111",
+    "card_type": "visa",
+    "first_name": "John",
+    "last_name": "Doe",
+    "month": "12",
+    "year": "2025",
+    "email": "john@example.com",
+    "address1": "123 Main St",
+    "address2": null,
+    "city": "Anytown",
+    "state": "CA",
+    "zip": "90210",
+    "country": "US",
+    "phone_number": null,
+    "payment_method_type": "credit_card",
+    "eligible_for_card_updater": true,
+    "errors": [],
+    "fingerprint": "b5fe350d5135ab64a8f3c1097fadefd9effb",
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:05:00Z"
+  }
+}

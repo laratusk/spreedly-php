@@ -1,0 +1,15 @@
+{
+  "payment": {
+    "token": "PAY123abc456DEF789ghi",
+    "state": "succeeded",
+    "amount": 1500,
+    "currency_code": "USD",
+    "payment_method_token": "PM1234567890abcdefgh",
+    "description": "Test payment",
+    "data": {
+      "reference": "order_12345"
+    },
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:00:00Z"
+  }
+}

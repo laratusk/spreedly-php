@@ -1,0 +1,19 @@
+{
+  "receiver": {
+    "token": "Rx1gI6fHgIuUkVnmUGPA3xoVyB",
+    "receiver_type": "braintree",
+    "state": "retained",
+    "description": "My Braintree Receiver",
+    "credentials": [
+      {
+        "name": "public_key",
+        "value": "test_public_key",
+        "safe": true
+      }
+    ],
+    "hostnames": ["api.braintreegateway.com"],
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:00:00Z",
+    "redacted_at": null
+  }
+}

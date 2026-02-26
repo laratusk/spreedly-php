@@ -1,0 +1,12 @@
+{
+  "errors": [
+    {
+      "key": "errors.blank",
+      "message": "Gateway type can't be blank."
+    },
+    {
+      "key": "errors.invalid",
+      "message": "Login is invalid."
+    }
+  ]
+}

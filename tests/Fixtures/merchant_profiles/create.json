@@ -1,0 +1,14 @@
+{
+  "merchant_profile": {
+    "token": "Mp1gI6fHgIuUkVnmUGPA3xoVyB",
+    "name": "My Store",
+    "city": "San Francisco",
+    "state": "CA",
+    "country": "US",
+    "merchant_category_code": "5411",
+    "merchant_id": "mid_123",
+    "profile_fields": [],
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:00:00Z"
+  }
+}

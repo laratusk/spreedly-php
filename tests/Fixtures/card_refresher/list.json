@@ -1,0 +1,24 @@
+{
+  "inquiries": [
+    {
+      "token": "CRI123abc456DEF789ghi",
+      "state": "succeeded",
+      "succeeded": true,
+      "payment_method_token": "PM1234567890abcdefgh",
+      "message": "Card refreshed successfully",
+      "message_key": "messages.card_refresher.succeeded",
+      "created_at": "2024-01-15T10:00:00Z",
+      "updated_at": "2024-01-15T10:05:00Z"
+    },
+    {
+      "token": "CRI987xyz654ABC321uvw",
+      "state": "failed",
+      "succeeded": false,
+      "payment_method_token": "PM9876543210zyxwvuts",
+      "message": "Card refresh failed",
+      "message_key": "messages.card_refresher.failed",
+      "created_at": "2024-01-14T09:00:00Z",
+      "updated_at": "2024-01-14T09:01:00Z"
+    }
+  ]
+}

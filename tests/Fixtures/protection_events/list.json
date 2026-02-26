@@ -1,0 +1,27 @@
+{
+  "protection_events": [
+    {
+      "token": "PE1234567890abcdefghi",
+      "event_type": "card_updated",
+      "state": "succeeded",
+      "payment_method_token": "PM1234567890abcdefgh",
+      "gateway_token": "GW1234567890abcdefgh",
+      "data": {
+        "previous_last_four_digits": "1111",
+        "new_last_four_digits": "4242"
+      },
+      "created_at": "2024-01-15T10:00:00Z",
+      "updated_at": "2024-01-15T10:00:00Z"
+    },
+    {
+      "token": "PE9876543210zyxwvutsrq",
+      "event_type": "card_expired",
+      "state": "succeeded",
+      "payment_method_token": "PM9876543210zyxwvuts",
+      "gateway_token": null,
+      "data": {},
+      "created_at": "2024-01-14T08:00:00Z",
+      "updated_at": "2024-01-14T08:00:00Z"
+    }
+  ]
+}

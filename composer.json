@@ -1,0 +1,69 @@
+{
+    "name": "laratusk/spreedly",
+    "description": "PHP SDK for the Spreedly payment orchestration API with Laravel support",
+    "keywords": ["spreedly", "payments", "payment-orchestration", "laravel", "php", "sdk"],
+    "homepage": "https://github.com/laratusk/spreedly",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Laratusk",
+            "homepage": "https://github.com/laratusk"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.0",
+        "nesbot/carbon": "^2.0 || ^3.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.0",
+        "nunomaduro/larastan": "^2.0 || ^3.0",
+        "orchestra/testbench": "^8.0 || ^9.0 || ^10.0",
+        "pestphp/pest": "^2.0 || ^3.0",
+        "rector/rector": "^1.0 || ^2.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "Laratusk\\Spreedly\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Laratusk\\Spreedly\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Laratusk\\Spreedly\\Laravel\\SpreedlyServiceProvider"
+            ],
+            "aliases": {
+                "Spreedly": "Laratusk\\Spreedly\\Laravel\\Facades\\Spreedly"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "lint": "vendor/bin/pint",
+        "lint-check": "vendor/bin/pint --test",
+        "analyse": "vendor/bin/phpstan analyse",
+        "rector": "vendor/bin/rector process",
+        "rector-check": "vendor/bin/rector process --dry-run",
+        "quality": [
+            "@lint-check",
+            "@analyse",
+            "@rector-check",
+            "@test"
+        ]
+    }
+}
