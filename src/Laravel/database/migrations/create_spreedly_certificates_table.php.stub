@@ -11,9 +11,7 @@ return new class extends Migration
         Schema::create('spreedly_certificates', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100)->default('Stripe Gateway cert')->nullable();
-            $table->string('gateway', 50)->default('stripe')->nullable();
             $table->string('token', 100)->nullable();
-            $table->string('environment', 50)->default('development')->nullable();
             $table->text('pem')->nullable();
             $table->text('private_key')->nullable();
             $table->text('public_key')->nullable();
@@ -22,10 +20,9 @@ return new class extends Migration
             $table->timestamp('uploaded_at')->useCurrent();
             $table->timestamp('expires_at')->nullable();
             $table->boolean('uploaded_to_spreedly')->default(false);
-            $table->boolean('is_default')->default(false);
             $table->timestamps();
 
-            $table->unique(['name', 'gateway', 'token', 'environment'], 'spreedly_certificates_key_pair_unique');
+            $table->unique(['name', 'token'], 'spreedly_certificates_key_pair_unique');
         });
     }
 

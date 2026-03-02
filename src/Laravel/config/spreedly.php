@@ -46,7 +46,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | When enabled, certificates are bound to the machine they were created on
-    | using its MAC address. SpreedlyCertificate::default() will then prefer
+    | using its MAC address. SpreedlyCertificate::current() will then prefer
     | the certificate matching the current machine over the global default.
     |
     | mac_address_command should be a shell expression whose stdout is the MAC
@@ -56,4 +56,5 @@ return [
     */
     'mac_address_enabled' => env('SPREEDLY_MAC_ADDRESS_ENABLED', false),
     'mac_address_command' => env('SPREEDLY_MAC_ADDRESS_COMMAND', ''),
+    'mac_address' => env('SPREEDLY_MAC_ADDRESS', ''),
 ];

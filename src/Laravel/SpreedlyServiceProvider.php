@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laratusk\Spreedly\Laravel;
 
 use Laratusk\Spreedly\Contracts\CertificateManagerInterface;
-use Laratusk\Spreedly\Laravel\Console\Commands\RenewSpreedlyCertificatesCommand;
+use Laratusk\Spreedly\Laravel\Console\Commands\SpreedlyCertificateInstall;
 use Laratusk\Spreedly\Services\CertificateManager;
 use Laratusk\Spreedly\SpreedlyClient;
 use Spatie\LaravelPackageTools\Package;
@@ -23,7 +23,7 @@ final class SpreedlyServiceProvider extends PackageServiceProvider
             ->name('spreedly')
             ->hasConfigFile()
             ->hasMigration('create_spreedly_certificates_table')
-            ->hasCommand(RenewSpreedlyCertificatesCommand::class);
+            ->hasCommand(SpreedlyCertificateInstall::class);
     }
 
     public function packageRegistered(): void
