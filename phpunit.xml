@@ -14,6 +14,8 @@
     <env name="SPREEDLY_ENVIRONMENT_KEY" value="testing"/>
     <env name="SPREEDLY_ACCESS_SECRET" value="testing"/>
     <env name="SPREEDLY_MAC_ADDRESS_COMMAND" value="ifconfig en0 | awk '/ether/{print $2}'"/>
+    <env name="DB_CONNECTION" value="sqlite"/>
+    <env name="DB_DATABASE" value=":memory:"/>
   </php>
   <source>
     <include>
