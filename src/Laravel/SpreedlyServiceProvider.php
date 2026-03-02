@@ -6,7 +6,7 @@ namespace Laratusk\Spreedly\Laravel;
 
 use Laratusk\Spreedly\Contracts\CertificateManagerInterface;
 use Laratusk\Spreedly\Laravel\Console\Commands\SpreedlyCertificateInstall;
-use Laratusk\Spreedly\Services\CertificateManager;
+use Laratusk\Spreedly\Laravel\Services\CertificateManager;
 use Laratusk\Spreedly\SpreedlyClient;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;

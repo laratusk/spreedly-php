@@ -68,6 +68,7 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
+     *
      * @throws ApiException
      * @throws TimeoutException
      * @throws ApiException
@@ -90,6 +91,7 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
      * @throws ApiException
      * @throws AuthenticationException
      * @throws GuzzleException
@@ -111,6 +113,7 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
      * @throws ApiException
      * @throws TimeoutException
      * @throws AuthenticationException
@@ -132,6 +135,7 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
      * @throws ApiException
      * @throws TimeoutException
      * @throws AuthenticationException
@@ -153,6 +157,7 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
+     *
      * @throws ApiException
      * @throws TimeoutException
      * @throws AuthenticationException
@@ -173,6 +178,7 @@ final readonly class Transporter implements TransporterInterface
 
     /**
      * Send a GET request and return the raw response body as a string.
+     *
      * @throws ApiException
      * @throws AuthenticationException
      * @throws InvalidRequestException
@@ -200,6 +206,7 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
+     *
      * @throws ApiException
      * @throws AuthenticationException
      * @throws GuzzleException

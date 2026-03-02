@@ -7,96 +7,88 @@ namespace Laratusk\Spreedly\Laravel\Console\Commands;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Laratusk\Spreedly\Laravel\Actions\CreateSpreedlyCertificate;
 use Laratusk\Spreedly\Laravel\Models\SpreedlyCertificate;
 
-class SpreedlyCertificateInstall extends Command
+final class SpreedlyCertificateInstall extends Command
 {
     protected $signature = 'spreedly:certificate-install
-                            {--force : Renew certificates even if they are not expiring}';
+                            {--force : Replace the certificate immediately without checking expiry}';
 
-    protected $description = 'Renew Spreedly certificates approaching expiration or force renew all';
+    protected $description = 'Renew the Spreedly certificate for this machine when expiring, or force-replace it';
 
     public function handle(): int
     {
-        $this->info('Starting Spreedly certificates renewal process...');
+        $this->info('Starting Spreedly certificate renewal process...');
 
-        $allCertificates = SpreedlyCertificate::query()->forCurrentMac()->get();
+        $certificate = SpreedlyCertificate::query()->forCurrentMac()->latest()->first();
 
-        $certificates = $allCertificates;
+        if ($certificate === null) {
+            $this->warn('No certificate found. Creating a new one...');
 
-        if (! $this->option('force')) {
-            $certificates->filter(fn (SpreedlyCertificate $certificate) => $certificate->isExpiring());
+            return $this->createCertificate();
         }
 
-        /**
-         * If no certificates exist at all → create a fresh one
-         */
-        if ($allCertificates->isEmpty()) {
-            $this->warn('No certificates found. Creating a new one...');
+        if (! $this->option('force') && ! $certificate->isExpiring()) {
+            $this->info(
+                'Certificate is valid, no renewal needed. Expires: '.
+                ($certificate->expires_at?->toIso8601String() ?? 'N/A')
+            );
 
-            try {
-                SpreedlyCertificate::createNewCertificate();
-
-                $this->info('New Spreedly certificate successfully created.');
-
-                return self::SUCCESS;
-            } catch (Exception $e) {
-                $this->error('Failed to create initial certificate: '.$e->getMessage());
-                Log::error('Initial Spreedly certificate creation failed', [
-                    'error' => $e->getMessage(),
-                ]);
-
-                return self::FAILURE;
-            }
+            return self::SUCCESS;
         }
 
-        if (! $this->option('force')) {
-            $certificates = $allCertificates->filter(fn (SpreedlyCertificate $c) => $c->isExpiring());
-            if ($certificates->isEmpty()) {
-                $this->info('No expiring certificates found.');
+        $this->info("Renewing certificate: {$certificate->name} ({$certificate->token})");
 
-                return self::SUCCESS;
-            }
+        return $this->renewCertificate($certificate);
+    }
+
+    private function createCertificate(): int
+    {
+        try {
+            (new CreateSpreedlyCertificate)->execute();
+
+            $this->info('New Spreedly certificate successfully created.');
+
+            return self::SUCCESS;
+        } catch (Exception $e) {
+            $this->error('Failed to create certificate: '.$e->getMessage());
+
+            Log::error('Spreedly certificate creation failed', ['error' => $e->getMessage()]);
+
+            return self::FAILURE;
+        }
+    }
+
+    private function renewCertificate(SpreedlyCertificate $old): int
+    {
+        try {
+            $new = (new CreateSpreedlyCertificate)->execute($old->name);
+        } catch (Exception $e) {
+            $this->error("Failed to renew certificate {$old->token}: {$e->getMessage()}");
+
+            Log::error('Spreedly certificate renewal failed', [
+                'token' => $old->token,
+                'error' => $e->getMessage(),
+            ]);
+
+            return self::FAILURE;
         }
 
-        $renewedCount = 0;
-        $failedCount = 0;
+        // New certificate is live — remove the old record.
+        $old->delete();
 
-        foreach ($certificates as $certificate) {
-            $this->info("Attempting to renew certificate: $certificate->name ($certificate->token)");
+        $this->info(
+            "Certificate renewed successfully. Old: {$old->token}, New: {$new->token}, ".
+            'Expires: '.($new->expires_at?->toIso8601String() ?? 'N/A')
+        );
 
-            try {
-                $newCertificate = SpreedlyCertificate::createNewCertificate($certificate->name);
+        Log::info('Spreedly certificate successfully renewed', [
+            'old_token' => $old->token,
+            'new_token' => $new->token,
+            'new_expires_at' => $new->expires_at?->toIso8601String(),
+        ]);
 
-                $certificate->delete();
-
-                $this->info(
-                    "Renewed successfully. Name: $certificate->name, Old: $certificate->token, New: $newCertificate->token, ".
-                    'Expires: '.($newCertificate->expires_at?->toIso8601String() ?? 'N/A')
-                );
-
-                Log::info('Spreedly certificate successfully renewed', [
-                    'old_token' => $certificate->token,
-                    'new_token' => $newCertificate->token,
-                    'new_expires_at' => $newCertificate->expires_at?->toIso8601String(),
-                ]);
-
-                $renewedCount++;
-
-            } catch (Exception $e) {
-                $this->error("Failed to renew certificate $certificate->token: {$e->getMessage()}");
-
-                Log::error('Spreedly certificate renewal failed', [
-                    'token' => $certificate->token,
-                    'error' => $e->getMessage(),
-                ]);
-
-                $failedCount++;
-            }
-        }
-
-        $this->info("Renewal complete. Renewed: $renewedCount. Failed: $failedCount.");
-
-        return $failedCount === 0 ? self::SUCCESS : self::FAILURE;
+        return self::SUCCESS;
     }
 }

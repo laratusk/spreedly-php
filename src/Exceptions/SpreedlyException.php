@@ -10,7 +10,7 @@ use Throwable;
 class SpreedlyException extends Exception
 {
     /**
-     * @param  array<string, mixed>|null  $errors
+     * @param  list<array<string, mixed>>|null  $errors
      */
     public function __construct(
         string $message,

@@ -9,5 +9,7 @@ final readonly class CertificateKeyPair
     public function __construct(
         public string $pem,
         public string $privateKey,
+        public string $publicKey,
+        public string $publicKeyHash,
     ) {}
 }

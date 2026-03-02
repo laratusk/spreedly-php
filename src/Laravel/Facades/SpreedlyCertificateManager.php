@@ -6,7 +6,7 @@ namespace Laratusk\Spreedly\Laravel\Facades;
 
 use Illuminate\Support\Facades\Facade;
 use Laratusk\Spreedly\DataTransferObjects\CertificateKeyPair;
-use Laratusk\Spreedly\Services\CertificateManager;
+use Laratusk\Spreedly\Laravel\Services\CertificateManager;
 
 /**
  * SpreedlyCertificateManager Laravel Facade.

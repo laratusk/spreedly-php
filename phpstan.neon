@@ -9,3 +9,9 @@ parameters:
     level: 8
     ignoreErrors:
         - identifier: larastan.noEnvCallsOutsideOfConfig
+        # Pest binds $this to the TestCase class via uses(), but PHPStan sees PHPUnit\Framework\TestCase.
+        # $this->app, artisan(), and loadFixture() are defined on LaravelTestCase / TestCase
+        # but PHPStan cannot resolve Pest's uses() binding statically.
+        - '#PHPUnit\\Framework\\TestCase::\$app#'
+        - '#PHPUnit\\Framework\\TestCase::artisan\(\)#'
+        - '#PHPUnit\\Framework\\TestCase::loadFixture\(\)#'

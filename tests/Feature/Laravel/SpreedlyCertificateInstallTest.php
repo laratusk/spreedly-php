@@ -8,11 +8,12 @@ use Laratusk\Spreedly\Contracts\TransporterInterface;
 use Laratusk\Spreedly\DataTransferObjects\CertificateKeyPair;
 use Laratusk\Spreedly\Laravel\Facades\SpreedlyCertificateManager;
 use Laratusk\Spreedly\Laravel\Models\SpreedlyCertificate;
-use Laratusk\Spreedly\Services\CertificateManager;
+use Laratusk\Spreedly\Laravel\Services\CertificateManager;
+use Laratusk\Spreedly\Laravel\Support\MacAddress;
 use Laratusk\Spreedly\SpreedlyClient;
-use Laratusk\Spreedly\Support\MacAddress;
 
 beforeEach(function (): void {
+    MacAddress::reset();
     $migration = include __DIR__.'/../../../src/Laravel/database/migrations/create_spreedly_certificates_table.php.stub';
     $migration->up();
 });
@@ -55,7 +56,7 @@ test('it successfully renews an expiring certificate and deletes the old one', f
     $newExp = now()->addYears(1);
 
     // Swap the facade after old cert creation so the cache is correctly replaced.
-    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key'));
+    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key', 'new_pub_key', 'new_pub_key_hash'));
 
     Log::shouldReceive('info')->once()->with('Spreedly certificate successfully renewed', Mockery::on(fn ($data): bool => $data['old_token'] === 'old_token_123' && $data['new_token'] === 'new_token_456'));
 
@@ -82,10 +83,9 @@ test('it successfully renews an expiring certificate and deletes the old one', f
     app()->instance(SpreedlyClient::class, $client);
 
     $this->artisan('spreedly:certificate-install')
-        ->expectsOutput('Starting Spreedly certificates renewal process...')
-        ->expectsOutput('Attempting to renew certificate: Test Cert (old_token_123)')
-        ->expectsOutputToContain('Renewed successfully. Name: Test Cert, Old: old_token_123, New: new_token_456, Expires: '.$newExp->toIso8601String())
-        ->expectsOutput('Renewal complete. Renewed: 1. Failed: 0.')
+        ->expectsOutput('Starting Spreedly certificate renewal process...')
+        ->expectsOutput('Renewing certificate: Test Cert (old_token_123)')
+        ->expectsOutputToContain('Certificate renewed successfully. Old: old_token_123, New: new_token_456, Expires: '.$newExp->toIso8601String())
         ->assertExitCode(0);
 
     // Old certificate must be deleted.
@@ -96,10 +96,12 @@ test('it successfully renews an expiring certificate and deletes the old one', f
     expect($newCert)->not->toBeNull()
         ->and($newCert->name)->toBe('Test Cert')
         ->and($newCert->pem)->toBe('new_pem')
-        ->and($newCert->getPrivateKey())->toBe('new_priv_key');
+        ->and($newCert->getPrivateKey())->toBe('new_priv_key')
+        ->and($newCert->getPublicKey())->toBe('new_pub_key')
+        ->and($newCert->getPublicKeyHash())->toBe('new_pub_key_hash');
 });
 
-test('it ignores certificates that are not expiring within 7 days', function (): void {
+test('it ignores a certificate that is not expiring within the configured threshold', function (): void {
     SpreedlyCertificate::query()->create([
         'name' => 'Valid Cert',
         'token' => 'valid_token',
@@ -107,8 +109,8 @@ test('it ignores certificates that are not expiring within 7 days', function ():
     ]);
 
     $this->artisan('spreedly:certificate-install')
-        ->expectsOutput('Starting Spreedly certificates renewal process...')
-        ->expectsOutput('No expiring certificates found.')
+        ->expectsOutput('Starting Spreedly certificate renewal process...')
+        ->expectsOutputToContain('Certificate is valid, no renewal needed. Expires:')
         ->assertExitCode(0);
 
     expect(SpreedlyCertificate::count())->toBe(1);
@@ -122,7 +124,7 @@ test('it retains the old certificate if renewal fails and logs the error', funct
     ]);
 
     // Key-pair generation succeeds; the Spreedly API upload fails.
-    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key'));
+    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key', 'new_pub_key', 'new_pub_key_hash'));
 
     Log::shouldReceive('error')->once()->with('Spreedly certificate renewal failed', Mockery::on(fn ($data): bool => $data['token'] === 'fail_token' && $data['error'] === 'API Error'));
 
@@ -135,17 +137,16 @@ test('it retains the old certificate if renewal fails and logs the error', funct
     app()->instance(SpreedlyClient::class, $client);
 
     $this->artisan('spreedly:certificate-install')
-        ->expectsOutput('Starting Spreedly certificates renewal process...')
-        ->expectsOutput('Attempting to renew certificate: Fail Cert (fail_token)')
+        ->expectsOutput('Starting Spreedly certificate renewal process...')
+        ->expectsOutput('Renewing certificate: Fail Cert (fail_token)')
         ->expectsOutput('Failed to renew certificate fail_token: API Error')
-        ->expectsOutput('Renewal complete. Renewed: 0. Failed: 1.')
         ->assertExitCode(1);
 
     // Old certificate must NOT be deleted.
     expect(SpreedlyCertificate::find($certificate->id))->not->toBeNull();
 });
 
-test('it renews all certificates when --force option is used, including non-expiring ones', function (): void {
+test('it replaces the non-expiring certificate when --force is used', function (): void {
     $validCert = SpreedlyCertificate::query()->create([
         'name' => 'Valid Cert',
         'token' => 'valid_token',
@@ -158,7 +159,7 @@ test('it renews all certificates when --force option is used, including non-expi
 
     $newExp = now()->addYears(1);
 
-    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key'));
+    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key', 'new_pub_key', 'new_pub_key_hash'));
 
     Log::shouldReceive('info')->once()->with('Spreedly certificate successfully renewed', Mockery::on(
         fn ($data): bool => $data['old_token'] === 'valid_token' && $data['new_token'] === 'forced_token_789'
@@ -186,10 +187,9 @@ test('it renews all certificates when --force option is used, including non-expi
     app()->instance(SpreedlyClient::class, $client);
 
     $this->artisan('spreedly:certificate-install', ['--force' => true])
-        ->expectsOutput('Starting Spreedly certificates renewal process...')
-        ->expectsOutput('Attempting to renew certificate: Valid Cert (valid_token)')
-        ->expectsOutputToContain('Renewed successfully. Name: Valid Cert, Old: valid_token, New: forced_token_789, Expires: '.$newExp->toIso8601String())
-        ->expectsOutput('Renewal complete. Renewed: 1. Failed: 0.')
+        ->expectsOutput('Starting Spreedly certificate renewal process...')
+        ->expectsOutput('Renewing certificate: Valid Cert (valid_token)')
+        ->expectsOutputToContain('Certificate renewed successfully. Old: valid_token, New: forced_token_789, Expires: '.$newExp->toIso8601String())
         ->assertExitCode(0);
 
     expect(SpreedlyCertificate::query()->find($validCert->id))->toBeNull();
@@ -197,11 +197,13 @@ test('it renews all certificates when --force option is used, including non-expi
     $newCert = SpreedlyCertificate::query()->where('token', 'forced_token_789')->firstOrFail();
     expect($newCert->name)->toBe('Valid Cert')
         ->and($newCert->pem)->toBe('new_pem')
-        ->and($newCert->getPrivateKey())->toBe('new_priv_key');
+        ->and($newCert->getPrivateKey())->toBe('new_priv_key')
+        ->and($newCert->getPublicKey())->toBe('new_pub_key')
+        ->and($newCert->getPublicKeyHash())->toBe('new_pub_key_hash');
 });
 
-test('it creates a new certificate with --force when no certificates exist', function (): void {
-    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key'));
+test('it creates a new certificate when none exists, even with --force', function (): void {
+    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key', 'new_pub_key', 'new_pub_key_hash'));
 
     $mockTransporter = Mockery::mock(TransporterInterface::class);
     $mockTransporter->shouldReceive('post')
@@ -224,15 +226,15 @@ test('it creates a new certificate with --force when no certificates exist', fun
     app()->instance(SpreedlyClient::class, $client);
 
     $this->artisan('spreedly:certificate-install', ['--force' => true])
-        ->expectsOutput('Starting Spreedly certificates renewal process...')
-        ->expectsOutput('No certificates found. Creating a new one...')
+        ->expectsOutput('Starting Spreedly certificate renewal process...')
+        ->expectsOutput('No certificate found. Creating a new one...')
         ->expectsOutput('New Spreedly certificate successfully created.')
         ->assertExitCode(0);
 
     expect(SpreedlyCertificate::count())->toBe(1);
 });
 
-test('it does not skip non-expiring certificates with --force when api fails', function (): void {
+test('it retains the non-expiring certificate when --force renewal fails', function (): void {
     $validCert = SpreedlyCertificate::query()->create([
         'name' => 'Valid Cert',
         'token' => 'valid_token',
@@ -240,7 +242,7 @@ test('it does not skip non-expiring certificates with --force when api fails', f
         'expires_at' => now()->addDays(30),
     ]);
 
-    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key'));
+    mockCertManager(new CertificateKeyPair('new_pem', 'new_priv_key', 'new_pub_key', 'new_pub_key_hash'));
 
     Log::shouldReceive('error')->once()->with('Spreedly certificate renewal failed', Mockery::on(
         fn ($data): bool => $data['token'] === 'valid_token' && $data['error'] === 'API Error'
@@ -253,10 +255,9 @@ test('it does not skip non-expiring certificates with --force when api fails', f
     app()->instance(SpreedlyClient::class, $client);
 
     $this->artisan('spreedly:certificate-install', ['--force' => true])
-        ->expectsOutput('Starting Spreedly certificates renewal process...')
-        ->expectsOutput('Attempting to renew certificate: Valid Cert (valid_token)')
+        ->expectsOutput('Starting Spreedly certificate renewal process...')
+        ->expectsOutput('Renewing certificate: Valid Cert (valid_token)')
         ->expectsOutput('Failed to renew certificate valid_token: API Error')
-        ->expectsOutput('Renewal complete. Renewed: 0. Failed: 1.')
         ->assertExitCode(1);
 
     // Original cert must be retained on failure.

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Laratusk\Spreedly\Laravel\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Laratusk\Spreedly\Laravel\Facades\Spreedly;
+use Illuminate\Support\Facades\Config;
+use Laratusk\Spreedly\Laravel\Actions\CreateSpreedlyCertificate;
 use Laratusk\Spreedly\Laravel\Facades\SpreedlyCertificateManager;
-use Laratusk\Spreedly\Services\CertificateManager;
-use Laratusk\Spreedly\Support\MacAddress;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Laratusk\Spreedly\Laravel\Services\CertificateManager;
+use Laratusk\Spreedly\Laravel\Support\MacAddress;
+use RuntimeException;
 
 /**
  * @property int $id
@@ -30,10 +30,10 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * @method static Builder<static>|SpreedlyCertificate newModelQuery()
  * @method static Builder<static>|SpreedlyCertificate newQuery()
  * @method static Builder<static>|SpreedlyCertificate query()
- * @method static Builder<static>|SpreedlyCertificate expiring(int $days = 7)
+ * @method static Builder<static>|SpreedlyCertificate expiring(?int $days = null)
  * @method static Builder<static>|SpreedlyCertificate forCurrentMac()
  */
-class SpreedlyCertificate extends Model
+final class SpreedlyCertificate extends Model
 {
     const EXPIRING_DAYS = 7;
 
@@ -60,9 +60,11 @@ class SpreedlyCertificate extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (self $certificate): void {
+        self::creating(function (self $certificate): void {
             if (empty($certificate->expires_at)) {
-                $certificate->expires_at = Carbon::now()->addDays(CertificateManager::DAYS_VALID);
+                $certificate->expires_at = now()->addDays(
+                    Config::integer('spreedly.certificate_days_valid', CertificateManager::DAYS_VALID)
+                );
             }
 
             if (! empty($certificate->private_key)) {
@@ -84,10 +86,11 @@ class SpreedlyCertificate extends Model
         $macAddress = MacAddress::get();
 
         if (! $macAddress) {
-            throw new BadRequestHttpException('MAC address not found');
+            throw new RuntimeException('MAC address not found');
         }
 
-        return self::query()->where('mac_address', $macAddress)->first() ?? self::createNewCertificate();
+        return self::query()->where('mac_address', $macAddress)->first()
+            ?? (new CreateSpreedlyCertificate)->execute();
     }
 
     public function getPem(): string
@@ -125,7 +128,9 @@ class SpreedlyCertificate extends Model
 
     public function isExpiring(): bool
     {
-        return $this->expires_at < now()->adddays(self::EXPIRING_DAYS);
+        $days = Config::integer('spreedly.certificate_expiring_days', self::EXPIRING_DAYS);
+
+        return $this->expires_at < now()->addDays($days);
     }
 
     /**
@@ -134,8 +139,10 @@ class SpreedlyCertificate extends Model
      * @param  Builder<SpreedlyCertificate>  $query
      * @return Builder<SpreedlyCertificate>
      */
-    public function scopeExpiring(Builder $query, int $days = self::EXPIRING_DAYS): Builder
+    public function scopeExpiring(Builder $query, ?int $days = null): Builder
     {
+        $days ??= Config::integer('spreedly.certificate_expiring_days', self::EXPIRING_DAYS);
+
         return $query->where('expires_at', '<', now()->addDays($days));
     }
 
@@ -148,28 +155,5 @@ class SpreedlyCertificate extends Model
     public function scopeForCurrentMac(Builder $query): Builder
     {
         return $query->where('mac_address', '=', MacAddress::get());
-    }
-
-    public static function createNewCertificate(?string $name = null): self
-    {
-        $keyPair = SpreedlyCertificateManager::createCertificateKeyPair(
-            $name ?? CertificateManager::COMMON_NAME,
-            CertificateManager::DAYS_VALID,
-            CertificateManager::KEY_BITS,
-        );
-
-        $spreedlyCert = Spreedly::certificates()->create([
-            'pem' => $keyPair->pem,
-            'private_key' => $keyPair->privateKey,
-        ]);
-
-        return SpreedlyCertificate::query()->create([
-            'name' => $name ?? CertificateManager::COMMON_NAME,
-            'token' => $spreedlyCert->token,
-            'pem' => $keyPair->pem,
-            'private_key' => $keyPair->privateKey,
-            'uploaded_at' => now(),
-            'expires_at' => $spreedlyCert->expiresAt ?? now()->addYears(1),
-        ]);
     }
 }

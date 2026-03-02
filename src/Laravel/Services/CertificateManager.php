@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laratusk\Spreedly\Services;
+namespace Laratusk\Spreedly\Laravel\Services;
 
 use Illuminate\Support\Facades\Crypt;
 use Laratusk\Spreedly\Contracts\CertificateManagerInterface;
@@ -51,10 +51,24 @@ final class CertificateManager implements CertificateManagerInterface
             throw new RuntimeException('Certificate signing failed: '.openssl_error_string());
         }
 
-        openssl_pkey_export($privateKeyResource, $privateKeyPem, $passphrase);
-        openssl_x509_export($cert, $certPem);
+        if (! openssl_pkey_export($privateKeyResource, $privateKeyPem, $passphrase)) {
+            throw new RuntimeException('Private key export failed: '.openssl_error_string());
+        }
 
-        return new CertificateKeyPair($certPem, $privateKeyPem);
+        if (! openssl_x509_export($cert, $certPem)) {
+            throw new RuntimeException('Certificate export failed: '.openssl_error_string());
+        }
+
+        $keyDetails = openssl_pkey_get_details($privateKeyResource);
+
+        if ($keyDetails === false) {
+            throw new RuntimeException('Public key extraction failed: '.openssl_error_string());
+        }
+
+        $publicKey = $keyDetails['key'];
+        $publicKeyHash = base64_encode(hash('sha256', (string) $publicKey, true));
+
+        return new CertificateKeyPair($certPem, $privateKeyPem, $publicKey, $publicKeyHash);
     }
 
     public function encryptPrivateKey(string $privateKey): string

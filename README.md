@@ -50,8 +50,6 @@ Add credentials to your `.env`:
 ```env
 SPREEDLY_ENVIRONMENT_KEY=your_environment_key
 SPREEDLY_ACCESS_SECRET=your_access_secret
-SPREEDLY_MAC_ADDRESS_COMMAND="ifconfig en0 | awk '/ether/{print $2}'" #for mac
-SPREEDLY_MAC_ADDRESS="your_machine_mac_address"
 ```
 
 Use the facade:
@@ -95,6 +93,103 @@ class PaymentController extends Controller
     }
 }
 ```
+
+## Certificate Automation (Laravel)
+
+Spreedly supports [certificate pinning](https://developer.spreedly.com/reference/certificates) for additional API security. The SDK can automatically generate, upload, and renew self-signed certificates on a per-machine basis, binding each certificate to the machine's MAC address so that multi-server deployments each maintain their own certificate.
+
+### Setup
+
+Publish and run the migration:
+
+```bash
+php artisan vendor:publish --tag="spreedly-migrations"
+php artisan migrate
+```
+
+Add the relevant variables to your `.env`:
+
+```env
+# Optional: override MAC address auto-detection (e.g. in containerised environments)
+SPREEDLY_MAC_ADDRESS=aa:bb:cc:dd:ee:ff
+
+# Certificate settings (optional — shown with defaults):
+SPREEDLY_CERTIFICATE_DAYS_VALID=365
+SPREEDLY_CERTIFICATE_KEY_BITS=2048
+SPREEDLY_CERTIFICATE_EXPIRING_DAYS=7
+```
+
+### How it works
+
+Each server keeps exactly **one active certificate** at a time, identified by its MAC address. The key pair is generated locally (the private key never leaves the server), then uploaded to Spreedly. The encrypted private key is stored in your database.
+
+| Scenario | Behaviour |
+|---|---|
+| No certificate exists | A new certificate is created and uploaded |
+| Certificate expires within threshold (default: 7 days) | Certificate is renewed; old record is deleted |
+| Certificate is still valid | No action taken |
+| `--force` flag | Certificate is replaced immediately regardless of expiry |
+
+### Artisan command
+
+```bash
+# Normal: renew only if expiring within the configured threshold
+php artisan spreedly:certificate-install
+
+# Force-replace the current certificate immediately
+php artisan spreedly:certificate-install --force
+```
+
+### Scheduled auto-renewal
+
+Register the command in your scheduler so certificates are renewed automatically. Running it once a day is sufficient — the command exits immediately when the certificate is not close to expiring.
+
+**Laravel 11+ (`routes/console.php`):**
+
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('spreedly:certificate-install')
+    ->dailyAt('02:00')
+    ->runInBackground()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        // alert your team
+    });
+```
+
+**Laravel 10 (`app/Console/Kernel.php`):**
+
+```php
+protected function schedule(Schedule $schedule): void
+{
+    $schedule->command('spreedly:certificate-install')
+        ->dailyAt('02:00')
+        ->runInBackground()
+        ->withoutOverlapping();
+}
+```
+
+> **Tip:** Set `SPREEDLY_CERTIFICATE_EXPIRING_DAYS` to control how many days before expiry a renewal is triggered. The default is `7`.
+
+### Resolving the current certificate
+
+Retrieve the active certificate for the current machine at runtime:
+
+```php
+use Laratusk\Spreedly\Laravel\Models\SpreedlyCertificate;
+
+// Returns the certificate for this machine; creates one automatically if none exists.
+$certificate = SpreedlyCertificate::current();
+
+$certificate->getPem();           // PEM-encoded certificate body
+$certificate->getPublicKey();     // RSA public key
+$certificate->getPublicKeyHash(); // base64(sha256(publicKey)) — for TLS pinning
+$certificate->getToken();         // Spreedly certificate token
+$certificate->getPrivateKey();    // Decrypted private key PEM
+```
+
+---
 
 ## Resources
 
@@ -662,7 +757,6 @@ Integration tests require real Spreedly credentials and run against the test gat
 SPREEDLY_INTEGRATION=true \
 SPREEDLY_ENVIRONMENT_KEY=your_key \
 SPREEDLY_ACCESS_SECRET=your_secret \
-SPREEDLY_MAC_ADDRESS_COMMAND="ifconfig en0 | awk '/ether/{print $2}'" \
 composer test -- --testsuite Integration
 ```
 
