@@ -63,7 +63,7 @@ final class SpreedlyCertificate extends Model
         self::creating(function (self $certificate): void {
             if (empty($certificate->expires_at)) {
                 $certificate->expires_at = now()->addDays(
-                    Config::integer('spreedly.certificate_days_valid', CertificateManager::DAYS_VALID)
+                    (int) Config::get('spreedly.certificate_days_valid', CertificateManager::DAYS_VALID)
                 );
             }
 
@@ -128,7 +128,7 @@ final class SpreedlyCertificate extends Model
 
     public function isExpiring(): bool
     {
-        $days = Config::integer('spreedly.certificate_expiring_days', self::EXPIRING_DAYS);
+        $days = (int) Config::get('spreedly.certificate_expiring_days', self::EXPIRING_DAYS);
 
         return $this->expires_at < now()->addDays($days);
     }
@@ -141,7 +141,7 @@ final class SpreedlyCertificate extends Model
      */
     public function scopeExpiring(Builder $query, ?int $days = null): Builder
     {
-        $days ??= Config::integer('spreedly.certificate_expiring_days', self::EXPIRING_DAYS);
+        $days ??= (int) Config::get('spreedly.certificate_expiring_days', self::EXPIRING_DAYS);
 
         return $query->where('expires_at', '<', now()->addDays($days));
     }
