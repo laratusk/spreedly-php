@@ -6,11 +6,11 @@ namespace Laratusk\Spreedly\Testing;
 
 use Laratusk\Spreedly\SpreedlyClient;
 
-final class SpreedlyFake
+final readonly class SpreedlyFake
 {
-    public readonly MockTransporter $mock;
+    public MockTransporter $mock;
 
-    private readonly SpreedlyClient $client;
+    private SpreedlyClient $client;
 
     public function __construct()
     {

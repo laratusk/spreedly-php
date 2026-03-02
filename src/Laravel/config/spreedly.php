@@ -39,4 +39,21 @@ return [
         'connect_timeout' => (int) env('SPREEDLY_CONNECT_TIMEOUT', 10),
         'retries' => (int) env('SPREEDLY_RETRIES', 3),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | MAC Address Certificate Binding
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, certificates are bound to the machine they were created on
+    | using its MAC address. SpreedlyCertificate::default() will then prefer
+    | the certificate matching the current machine over the global default.
+    |
+    | mac_address_command should be a shell expression whose stdout is the MAC
+    | address, e.g. on macOS:
+    |   ifconfig en0 | awk '/ether/{print $2}'
+    |
+    */
+    'mac_address_enabled' => env('SPREEDLY_MAC_ADDRESS_ENABLED', false),
+    'mac_address_command' => env('SPREEDLY_MAC_ADDRESS_COMMAND', ''),
 ];
