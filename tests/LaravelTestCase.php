@@ -31,5 +31,6 @@ abstract class LaravelTestCase extends BaseTestCase
             'connect_timeout' => 10,
             'retries' => 0,
         ]);
+        $app['config']->set('spreedly.mac_address_command', "ifconfig en0 | awk '/ether/{print $2}'");
     }
 }

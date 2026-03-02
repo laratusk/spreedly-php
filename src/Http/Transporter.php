@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Laratusk\Spreedly\Http;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack;
 use Laratusk\Spreedly\Contracts\TransporterInterface;
 use Laratusk\Spreedly\Exceptions\ApiException;
@@ -15,6 +18,7 @@ use Laratusk\Spreedly\Exceptions\NotFoundException;
 use Laratusk\Spreedly\Exceptions\RateLimitException;
 use Laratusk\Spreedly\Exceptions\TimeoutException;
 use Laratusk\Spreedly\Http\Middleware\RetryMiddleware;
+use Psr\Http\Message\ResponseInterface;
 
 final readonly class Transporter implements TransporterInterface
 {
@@ -64,6 +68,15 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
+     *
+     * @throws ApiException
+     * @throws TimeoutException
+     * @throws ApiException
+     * @throws AuthenticationException
+     * @throws GuzzleException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
      */
     public function get(string $endpoint, array $query = []): array
     {
@@ -78,6 +91,14 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
+     * @throws ApiException
+     * @throws AuthenticationException
+     * @throws GuzzleException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
+     * @throws TimeoutException
      */
     public function post(string $endpoint, array $payload = []): array
     {
@@ -92,6 +113,14 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
+     * @throws ApiException
+     * @throws TimeoutException
+     * @throws AuthenticationException
+     * @throws GuzzleException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
      */
     public function put(string $endpoint, array $payload = []): array
     {
@@ -106,6 +135,14 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
+     * @throws ApiException
+     * @throws TimeoutException
+     * @throws AuthenticationException
+     * @throws GuzzleException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
      */
     public function patch(string $endpoint, array $payload = []): array
     {
@@ -120,6 +157,14 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
+     *
+     * @throws ApiException
+     * @throws TimeoutException
+     * @throws AuthenticationException
+     * @throws GuzzleException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
      */
     public function delete(string $endpoint, array $query = []): array
     {
@@ -133,6 +178,14 @@ final readonly class Transporter implements TransporterInterface
 
     /**
      * Send a GET request and return the raw response body as a string.
+     *
+     * @throws ApiException
+     * @throws AuthenticationException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
+     * @throws TimeoutException
+     * @throws GuzzleException
      */
     public function getRaw(string $endpoint): string
     {
@@ -142,8 +195,8 @@ final readonly class Transporter implements TransporterInterface
             return (string) $psrResponse->getBody();
         } catch (ConnectException $e) {
             throw new TimeoutException(message: 'Connection to Spreedly timed out: '.$e->getMessage(), code: $e->getCode(), previous: $e);
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            if ($e->getResponse() instanceof \Psr\Http\Message\ResponseInterface) {
+        } catch (RequestException $e) {
+            if ($e->getResponse() instanceof ResponseInterface) {
                 $this->handleErrorResponse(new Response($e->getResponse()));
             }
             throw new ApiException(message: 'Spreedly API request failed: '.$e->getMessage(), code: $e->getCode(), previous: $e);
@@ -153,6 +206,14 @@ final readonly class Transporter implements TransporterInterface
     /**
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
+     *
+     * @throws ApiException
+     * @throws AuthenticationException
+     * @throws GuzzleException
+     * @throws InvalidRequestException
+     * @throws NotFoundException
+     * @throws RateLimitException
+     * @throws TimeoutException
      */
     private function request(string $method, string $endpoint, array $options = []): array
     {
@@ -167,11 +228,11 @@ final readonly class Transporter implements TransporterInterface
             return $response->json();
         } catch (ConnectException $e) {
             throw new TimeoutException(message: 'Connection to Spreedly timed out: '.$e->getMessage(), code: $e->getCode(), previous: $e);
-        } catch (\GuzzleHttp\Exception\BadResponseException $e) {
+        } catch (BadResponseException $e) {
             $response = new Response($e->getResponse());
             $this->handleErrorResponse($response);
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            if ($e->getResponse() instanceof \Psr\Http\Message\ResponseInterface) {
+        } catch (RequestException $e) {
+            if ($e->getResponse() instanceof ResponseInterface) {
                 $response = new Response($e->getResponse());
                 $this->handleErrorResponse($response);
             }
@@ -219,11 +280,6 @@ final readonly class Transporter implements TransporterInterface
                 spreedlyErrorKey: $errorKey,
             ),
             $statusCode === 429 => throw new RateLimitException(
-                message: (string) $message,
-                httpStatus: $statusCode,
-                spreedlyErrorKey: $errorKey,
-            ),
-            $statusCode >= 500 => throw new ApiException(
                 message: (string) $message,
                 httpStatus: $statusCode,
                 spreedlyErrorKey: $errorKey,

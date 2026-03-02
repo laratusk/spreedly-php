@@ -7,13 +7,13 @@
     <testsuite name="Feature">
       <directory>tests/Feature</directory>
     </testsuite>
-    <testsuite name="Integration">
-      <directory>tests/Integration</directory>
-    </testsuite>
+
   </testsuites>
   <php>
+    <env name="APP_KEY" value="base64:eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg="/>
     <env name="SPREEDLY_ENVIRONMENT_KEY" value="testing"/>
     <env name="SPREEDLY_ACCESS_SECRET" value="testing"/>
+    <env name="SPREEDLY_MAC_ADDRESS_COMMAND" value="ifconfig en0 | awk '/ether/{print $2}'"/>
   </php>
   <source>
     <include>

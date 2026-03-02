@@ -9,9 +9,10 @@ use Laratusk\Spreedly\Laravel\Facades\Spreedly;
 use Laratusk\Spreedly\SpreedlyClient;
 use Laratusk\Spreedly\Testing\MockTransporter;
 use Laratusk\Spreedly\Testing\SpreedlyFake;
-use RuntimeException;
 
-// Shared gateway fixture data used across multiple tests
+/**
+ * @return array<string, mixed>
+ */
 function gatewayFixtureData(string $token = 'gw_test_123'): array
 {
     return [
@@ -35,6 +36,9 @@ function gatewayFixtureData(string $token = 'gw_test_123'): array
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function transactionFixtureData(string $token = 'tx_test_123'): array
 {
     return [

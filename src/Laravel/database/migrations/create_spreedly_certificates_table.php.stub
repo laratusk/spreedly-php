@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('spreedly_certificates', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100)->default('spreedly.certificate')->nullable();
+            $table->string('token', 100)->nullable();
+            $table->text('pem')->nullable();
+            $table->text('private_key')->nullable();
+            $table->text('public_key')->nullable();
+            $table->text('public_key_hash')->nullable();
+            $table->macAddress()->nullable()->after('public_key_hash');
+            $table->timestamp('uploaded_at')->useCurrent();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('spreedly_certificates');
+    }
+};

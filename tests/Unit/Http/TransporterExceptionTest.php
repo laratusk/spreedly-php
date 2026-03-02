@@ -27,7 +27,7 @@ function makeTransporterWithMock(MockHandler $mock): Transporter
 
 test('throws AuthenticationException on 401', function (): void {
     $mock = new MockHandler([
-        new Response(401, [], json_encode([
+        new Response(401, [], (string) json_encode([
             'errors' => [['key' => 'errors.unauthorized', 'message' => 'Unauthorized']],
         ])),
     ]);
@@ -40,7 +40,7 @@ test('throws AuthenticationException on 401', function (): void {
 
 test('throws NotFoundException on 404', function (): void {
     $mock = new MockHandler([
-        new Response(404, [], json_encode([
+        new Response(404, [], (string) json_encode([
             'errors' => [['key' => 'errors.not_found', 'message' => 'Not Found']],
         ])),
     ]);
@@ -53,7 +53,7 @@ test('throws NotFoundException on 404', function (): void {
 
 test('throws InvalidRequestException on 422 with errors', function (): void {
     $mock = new MockHandler([
-        new Response(422, [], json_encode([
+        new Response(422, [], (string) json_encode([
             'errors' => [
                 ['key' => 'errors.blank', 'message' => "Gateway type can't be blank."],
             ],
@@ -74,7 +74,7 @@ test('throws InvalidRequestException on 422 with errors', function (): void {
 
 test('throws RateLimitException on 429', function (): void {
     $mock = new MockHandler([
-        new Response(429, [], json_encode([
+        new Response(429, [], (string) json_encode([
             'errors' => [['key' => 'errors.rate_limit', 'message' => 'Too many requests']],
         ])),
     ]);
@@ -87,7 +87,7 @@ test('throws RateLimitException on 429', function (): void {
 
 test('throws ApiException on 500', function (): void {
     $mock = new MockHandler([
-        new Response(500, [], json_encode([
+        new Response(500, [], (string) json_encode([
             'errors' => [['key' => 'errors.server', 'message' => 'Internal Server Error']],
         ])),
     ]);
@@ -100,7 +100,7 @@ test('throws ApiException on 500', function (): void {
 
 test('authentication exception has http status and error key', function (): void {
     $mock = new MockHandler([
-        new Response(401, [], json_encode([
+        new Response(401, [], (string) json_encode([
             'errors' => [['key' => 'errors.unauthorized', 'message' => 'Unauthorized']],
         ])),
     ]);
@@ -119,7 +119,7 @@ test('authentication exception has http status and error key', function (): void
 test('successful response returns parsed json array', function (): void {
     $payload = ['gateways' => [['token' => 'abc', 'gateway_type' => 'test']]];
     $mock = new MockHandler([
-        new Response(200, [], json_encode($payload)),
+        new Response(200, [], (string) json_encode($payload)),
     ]);
 
     $transporter = makeTransporterWithMock($mock);
@@ -131,7 +131,7 @@ test('successful response returns parsed json array', function (): void {
 test('post sends json payload', function (): void {
     $responsePayload = ['transaction' => ['token' => 'tx_123', 'succeeded' => true]];
     $mock = new MockHandler([
-        new Response(201, [], json_encode($responsePayload)),
+        new Response(201, [], (string) json_encode($responsePayload)),
     ]);
 
     $transporter = makeTransporterWithMock($mock);

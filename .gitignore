@@ -30,6 +30,9 @@ desktop.ini
 # Logs
 *.log
 
+# Backup files
+*.bak
+
 # Composer
 composer.phar
 composer.lock

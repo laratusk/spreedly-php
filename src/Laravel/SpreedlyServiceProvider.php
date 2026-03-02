@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Laratusk\Spreedly\Laravel;
 
+use Laratusk\Spreedly\Contracts\CertificateManagerInterface;
+use Laratusk\Spreedly\Laravel\Console\Commands\SpreedlyCertificateInstall;
+use Laratusk\Spreedly\Laravel\Services\CertificateManager;
 use Laratusk\Spreedly\SpreedlyClient;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -18,7 +21,9 @@ final class SpreedlyServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('spreedly')
-            ->hasConfigFile();
+            ->hasConfigFile()
+            ->hasMigration('create_spreedly_certificates_table')
+            ->hasCommand(SpreedlyCertificateInstall::class);
     }
 
     public function packageRegistered(): void
@@ -30,5 +35,8 @@ final class SpreedlyServiceProvider extends PackageServiceProvider
         ));
 
         $this->app->alias(SpreedlyClient::class, 'spreedly');
+
+        $this->app->singleton(CertificateManager::class, static fn (): CertificateManager => new CertificateManager);
+        $this->app->bind(CertificateManagerInterface::class, CertificateManager::class);
     }
 }
