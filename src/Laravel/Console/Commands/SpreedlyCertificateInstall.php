@@ -20,15 +20,13 @@ class SpreedlyCertificateInstall extends Command
     {
         $this->info('Starting Spreedly certificates renewal process...');
 
-        $allCertificates = SpreedlyCertificate::query()->mac()->get();
+        $allCertificates = SpreedlyCertificate::query()->forCurrentMac()->get();
 
-        $query = SpreedlyCertificate::query()->mac();
+        $certificates = $allCertificates;
 
         if (! $this->option('force')) {
-            $query->expiring();
+            $certificates->filter(fn (SpreedlyCertificate $certificate) => $certificate->isExpiring());
         }
-
-        $certificates = $query->get();
 
         /**
          * If no certificates exist at all → create a fresh one
@@ -56,6 +54,7 @@ class SpreedlyCertificateInstall extends Command
             $certificates = $allCertificates->filter(fn (SpreedlyCertificate $c) => $c->isExpiring());
             if ($certificates->isEmpty()) {
                 $this->info('No expiring certificates found.');
+
                 return self::SUCCESS;
             }
         }

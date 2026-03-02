@@ -19,10 +19,7 @@ return new class extends Migration
             $table->macAddress()->nullable()->after('public_key_hash');
             $table->timestamp('uploaded_at')->useCurrent();
             $table->timestamp('expires_at')->nullable();
-            $table->boolean('uploaded_to_spreedly')->default(false);
             $table->timestamps();
-
-            $table->unique(['name', 'token'], 'spreedly_certificates_key_pair_unique');
         });
     }
 

@@ -50,7 +50,6 @@ Add credentials to your `.env`:
 ```env
 SPREEDLY_ENVIRONMENT_KEY=your_environment_key
 SPREEDLY_ACCESS_SECRET=your_access_secret
-SPREEDLY_MAC_ADDRESS_ENABLED=true
 SPREEDLY_MAC_ADDRESS_COMMAND="ifconfig en0 | awk '/ether/{print $2}'" #for mac
 SPREEDLY_MAC_ADDRESS="your_machine_mac_address"
 ```
@@ -663,7 +662,6 @@ Integration tests require real Spreedly credentials and run against the test gat
 SPREEDLY_INTEGRATION=true \
 SPREEDLY_ENVIRONMENT_KEY=your_key \
 SPREEDLY_ACCESS_SECRET=your_secret \
-SPREEDLY_MAC_ADDRESS_ENABLED=true  \
 SPREEDLY_MAC_ADDRESS_COMMAND="ifconfig en0 | awk '/ether/{print $2}'" \
 composer test -- --testsuite Integration
 ```

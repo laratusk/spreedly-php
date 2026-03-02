@@ -11,6 +11,7 @@ use Laratusk\Spreedly\Laravel\Facades\Spreedly;
 use Laratusk\Spreedly\Laravel\Facades\SpreedlyCertificateManager;
 use Laratusk\Spreedly\Services\CertificateManager;
 use Laratusk\Spreedly\Support\MacAddress;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @property int $id
@@ -23,7 +24,6 @@ use Laratusk\Spreedly\Support\MacAddress;
  * @property string|null $mac_address
  * @property \Illuminate\Support\Carbon $uploaded_at
  * @property \Illuminate\Support\Carbon|null $expires_at
- * @property bool $uploaded_to_spreedly
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  *
@@ -31,7 +31,7 @@ use Laratusk\Spreedly\Support\MacAddress;
  * @method static Builder<static>|SpreedlyCertificate newQuery()
  * @method static Builder<static>|SpreedlyCertificate query()
  * @method static Builder<static>|SpreedlyCertificate expiring(int $days = 7)
- * @method static Builder<static>|SpreedlyCertificate mac()
+ * @method static Builder<static>|SpreedlyCertificate forCurrentMac()
  */
 class SpreedlyCertificate extends Model
 {
@@ -49,14 +49,11 @@ class SpreedlyCertificate extends Model
         'mac_address',
         'uploaded_at',
         'expires_at',
-        'uploaded_to_spreedly',
     ];
 
     protected $casts = [
         'uploaded_at' => 'datetime',
         'expires_at' => 'datetime',
-        'uploaded_to_spreedly' => 'boolean',
-        'is_default' => 'boolean',
     ];
 
     protected $hidden = ['pem', 'public_key', 'public_key_hash', 'private_key'];
@@ -72,44 +69,25 @@ class SpreedlyCertificate extends Model
                 $certificate->private_key = SpreedlyCertificateManager::encryptPrivateKey($certificate->private_key);
             }
 
-            if (config('spreedly.mac_address_enabled')) {
-                $certificate->mac_address = MacAddress::get();
-            }
+            $certificate->mac_address = MacAddress::get();
         });
     }
 
     /**
      * Retrieve the default certificate, honoring MAC-address-based selection when enabled.
      *
-     * If mac_address_enabled is on, the certificate bound to the current machine is
+     * The certificate bound to the current machine is
      * returned. Falls back to the global default when no machine-specific record exists.
      */
     public static function current(): self
     {
-        /** @var self $default */
-        $default = self::query()->where('is_default', true)->first();
-
-        if (! config('spreedly.mac_address_enabled')) {
-            return $default;
-        }
-
         $macAddress = MacAddress::get();
 
         if (! $macAddress) {
-            return $default;
+            throw new BadRequestHttpException('MAC address not found');
         }
 
-        return self::query()->where('mac_address', $macAddress)->first() ?? $default;
-    }
-
-    public function uploadedToSpreedly(): bool
-    {
-        return $this->uploaded_to_spreedly;
-    }
-
-    public function isDefault(): bool
-    {
-        return $this->is_default;
+        return self::query()->where('mac_address', $macAddress)->first() ?? self::createNewCertificate();
     }
 
     public function getPem(): string
@@ -167,7 +145,7 @@ class SpreedlyCertificate extends Model
      * @param  Builder<SpreedlyCertificate>  $query
      * @return Builder<SpreedlyCertificate>
      */
-    public function scopeMac(Builder $query, int $days = 7): Builder
+    public function scopeForCurrentMac(Builder $query): Builder
     {
         return $query->where('mac_address', '=', MacAddress::get());
     }
@@ -192,7 +170,6 @@ class SpreedlyCertificate extends Model
             'private_key' => $keyPair->privateKey,
             'uploaded_at' => now(),
             'expires_at' => $spreedlyCert->expiresAt ?? now()->addYears(1),
-            'uploaded_to_spreedly' => true,
         ]);
     }
 }
