@@ -16,8 +16,8 @@ final class CreateSpreedlyCertificate
     {
         $keyPair = SpreedlyCertificateManager::createCertificateKeyPair(
             $name ?? CertificateManager::COMMON_NAME,
-            Config::integer('spreedly.certificate_days_valid', CertificateManager::DAYS_VALID),
-            Config::integer('spreedly.certificate_key_bits', CertificateManager::KEY_BITS),
+            (int) Config::get('spreedly.certificate_days_valid', CertificateManager::DAYS_VALID),
+            (int) Config::get('spreedly.certificate_key_bits', CertificateManager::KEY_BITS),
         );
 
         $spreedlyCert = Spreedly::certificates()->create([
