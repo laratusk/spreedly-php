@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Laratusk\Spreedly\Laravel\Traits\Enums;
 
 trait EnumToArray
@@ -27,6 +29,7 @@ trait EnumToArray
     public static function only(...$keys): array
     {
         $all = static::array();
+
         return array_intersect_key($all, array_flip($keys));
     }
 }
