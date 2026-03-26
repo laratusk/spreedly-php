@@ -20,7 +20,7 @@ test('can iterate over items', function (): void {
         items: $items,
         sinceToken: null,
         hasMore: false,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
+        fetcher: fn (string $token): PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
     );
 
     $collected = [];
@@ -36,7 +36,7 @@ test('count returns correct number of items', function (): void {
         items: ['a', 'b', 'c'],
         sinceToken: 'token_c',
         hasMore: false,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
+        fetcher: fn (string $token): PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
     );
 
     expect($collection->count())->toBe(3);
@@ -48,7 +48,7 @@ test('next page returns null when has no more', function (): void {
         items: ['a'],
         sinceToken: 'token',
         hasMore: false,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
+        fetcher: fn (string $token): PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
     );
 
     expect($collection->nextPage())->toBeNull();
@@ -59,7 +59,7 @@ test('next page returns null when since token is null', function (): void {
         items: [],
         sinceToken: null,
         hasMore: true,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
+        fetcher: fn (string $token): PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
     );
 
     expect($collection->nextPage())->toBeNull();
@@ -96,14 +96,14 @@ test('auto paginate yields all items across pages', function (): void {
         items: ['d', 'e'],
         sinceToken: null,
         hasMore: false,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
+        fetcher: fn (string $token): PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
     );
 
     $page1 = new PaginatedCollection(
         items: ['a', 'b', 'c'],
         sinceToken: 'token_c',
         hasMore: true,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $page2,
+        fetcher: fn (string $token): PaginatedCollection => $page2,
     );
 
     $allItems = iterator_to_array($page1->autoPaginate(), false);
@@ -116,7 +116,7 @@ test('auto paginate works with single page', function (): void {
         items: ['x', 'y'],
         sinceToken: null,
         hasMore: false,
-        fetcher: fn (string $token): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
+        fetcher: fn (string $token): PaginatedCollection => new PaginatedCollection([], null, false, terminalFetcher()),
     );
 
     $allItems = iterator_to_array($collection->autoPaginate(), false);

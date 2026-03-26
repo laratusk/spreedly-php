@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
@@ -56,7 +57,7 @@ test('does not retry on 404 response', function (): void {
 
     try {
         $client->request('GET', 'https://example.com/test');
-    } catch (\Exception) {
+    } catch (Exception) {
         // Expected - 404 not retried
     }
 
@@ -79,7 +80,7 @@ test('stops after max retries and throws final exception', function (): void {
     try {
         $client->request('GET', 'https://example.com/test');
         expect(true)->toBeFalse('Should have thrown exception');
-    } catch (\GuzzleHttp\Exception\ServerException $e) {
+    } catch (ServerException $e) {
         expect($e->getResponse()->getStatusCode())->toBe(500);
     }
 });

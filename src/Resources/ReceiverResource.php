@@ -57,7 +57,7 @@ final readonly class ReceiverResource
 
         $response = $this->transporter->get('receivers.json', $query);
         $receivers = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Receiver => Receiver::fromArray(['receiver' => $item]),
+            static fn (array $item): Receiver => Receiver::fromArray(['receiver' => $item]),
             (array) ($response['receivers'] ?? []),
         );
 
@@ -68,7 +68,7 @@ final readonly class ReceiverResource
             items: $receivers,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
         );
     }
 

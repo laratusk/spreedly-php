@@ -33,7 +33,7 @@ final readonly class ProtectionEventResource
 
         $response = $this->transporter->get('protection_events.json', $query);
         $events = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\ProtectionEvent => ProtectionEvent::fromArray(['protection_event' => $item]),
+            static fn (array $item): ProtectionEvent => ProtectionEvent::fromArray(['protection_event' => $item]),
             (array) ($response['protection_events'] ?? []),
         );
 
@@ -44,7 +44,7 @@ final readonly class ProtectionEventResource
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
         );
     }
 

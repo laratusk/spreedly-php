@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection;
+use Laratusk\Spreedly\Resources\GatewayResource;
 use Laratusk\Spreedly\SpreedlyClient;
 use Laratusk\Spreedly\Testing\MockTransporter;
 use Laratusk\Spreedly\Testing\SpreedlyFake;
@@ -109,7 +110,7 @@ test('SpreedlyFake make returns SpreedlyFake with accessible mock', function ():
     expect($fake)->toBeInstanceOf(SpreedlyFake::class);
     expect($fake->mock)->toBeInstanceOf(MockTransporter::class);
     expect($fake->client())->toBeInstanceOf(SpreedlyClient::class);
-    expect($fake->client()->gateways)->toBeInstanceOf(\Laratusk\Spreedly\Resources\GatewayResource::class);
+    expect($fake->client()->gateways)->toBeInstanceOf(GatewayResource::class);
 });
 
 test('SpreedlyFake mock can configure and return responses', function (): void {
@@ -118,7 +119,7 @@ test('SpreedlyFake mock can configure and return responses', function (): void {
 
     $collection = $fake->client()->gateways->list();
 
-    expect($collection)->toBeInstanceOf(\Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection::class);
+    expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(0);
     $fake->mock->assertCalled('GET', 'gateways.json');
 });

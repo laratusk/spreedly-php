@@ -45,7 +45,7 @@ final readonly class SubMerchantResource
 
         $response = $this->transporter->get('sub_merchants.json', $query);
         $subMerchants = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\SubMerchant => SubMerchant::fromArray(['sub_merchant' => $item]),
+            static fn (array $item): SubMerchant => SubMerchant::fromArray(['sub_merchant' => $item]),
             (array) ($response['sub_merchants'] ?? []),
         );
 
@@ -56,7 +56,7 @@ final readonly class SubMerchantResource
             items: $subMerchants,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
         );
     }
 

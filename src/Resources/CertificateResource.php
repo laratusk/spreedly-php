@@ -46,7 +46,7 @@ final readonly class CertificateResource
 
         $response = $this->transporter->get('certificates.json', $query);
         $certificates = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Certificate => Certificate::fromArray(['certificate' => $item]),
+            static fn (array $item): Certificate => Certificate::fromArray(['certificate' => $item]),
             (array) ($response['certificates'] ?? []),
         );
 
@@ -57,7 +57,7 @@ final readonly class CertificateResource
             items: $certificates,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
         );
     }
 

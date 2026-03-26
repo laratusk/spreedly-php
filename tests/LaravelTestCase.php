@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Laratusk\Spreedly\Tests;
 
+use Illuminate\Foundation\Application;
 use Laratusk\Spreedly\Laravel\SpreedlyServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class LaravelTestCase extends BaseTestCase
 {
     /**
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param  Application  $app
      * @return array<class-string>
      */
     protected function getPackageProviders($app): array
@@ -19,7 +20,7 @@ abstract class LaravelTestCase extends BaseTestCase
     }
 
     /**
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param  Application  $app
      */
     protected function defineEnvironment($app): void
     {

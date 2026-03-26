@@ -56,7 +56,7 @@ final readonly class GatewayResource
 
         $response = $this->transporter->get('gateways.json', $query);
         $gateways = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Gateway => Gateway::fromArray(['gateway' => $item]),
+            static fn (array $item): Gateway => Gateway::fromArray(['gateway' => $item]),
             (array) ($response['gateways'] ?? []),
         );
 
@@ -67,7 +67,7 @@ final readonly class GatewayResource
             items: $gateways,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
         );
     }
 
@@ -117,7 +117,7 @@ final readonly class GatewayResource
 
         $response = $this->transporter->get("gateways/{$token}/transactions.json", $query);
         $transactions = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Transaction => Transaction::fromArray(['transaction' => $item]),
+            static fn (array $item): Transaction => Transaction::fromArray(['transaction' => $item]),
             (array) ($response['transactions'] ?? []),
         );
 
@@ -128,7 +128,7 @@ final readonly class GatewayResource
             items: $transactions,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->transactions($token, $since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->transactions($token, $since, $order),
         );
     }
 

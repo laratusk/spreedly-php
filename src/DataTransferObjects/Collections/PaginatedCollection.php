@@ -65,7 +65,7 @@ final readonly class PaginatedCollection implements Countable, IteratorAggregate
             }
 
             $nextPage = $page->nextPage();
-            if (! $nextPage instanceof \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection) {
+            if (! $nextPage instanceof PaginatedCollection) {
                 break;
             }
 

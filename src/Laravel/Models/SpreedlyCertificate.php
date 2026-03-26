@@ -6,6 +6,7 @@ namespace Laratusk\Spreedly\Laravel\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Laratusk\Spreedly\Laravel\Actions\CreateSpreedlyCertificate;
 use Laratusk\Spreedly\Laravel\Facades\SpreedlyCertificateManager;
@@ -22,10 +23,10 @@ use RuntimeException;
  * @property string|null $public_key
  * @property string|null $public_key_hash
  * @property string|null $mac_address
- * @property \Illuminate\Support\Carbon $uploaded_at
- * @property \Illuminate\Support\Carbon|null $expires_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon $uploaded_at
+ * @property Carbon|null $expires_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  *
  * @method static Builder<static>|SpreedlyCertificate newModelQuery()
  * @method static Builder<static>|SpreedlyCertificate newQuery()

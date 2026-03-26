@@ -33,7 +33,7 @@ final readonly class EventResource
 
         $response = $this->transporter->get('events.json', $query);
         $events = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Event => Event::fromArray(['event' => $item]),
+            static fn (array $item): Event => Event::fromArray(['event' => $item]),
             (array) ($response['events'] ?? []),
         );
 
@@ -44,7 +44,7 @@ final readonly class EventResource
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
         );
     }
 

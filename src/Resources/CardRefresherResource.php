@@ -55,7 +55,7 @@ final readonly class CardRefresherResource
 
         $response = $this->transporter->get('card_refresher/inquiry.json', $query);
         $inquiries = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\CardRefresherInquiry => CardRefresherInquiry::fromArray(['inquiry' => $item]),
+            static fn (array $item): CardRefresherInquiry => CardRefresherInquiry::fromArray(['inquiry' => $item]),
             (array) ($response['inquiries'] ?? []),
         );
 
@@ -66,7 +66,7 @@ final readonly class CardRefresherResource
             items: $inquiries,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
         );
     }
 }

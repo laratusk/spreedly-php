@@ -45,7 +45,7 @@ final readonly class MerchantProfileResource
 
         $response = $this->transporter->get('merchant_profiles.json', $query);
         $profiles = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\MerchantProfile => MerchantProfile::fromArray(['merchant_profile' => $item]),
+            static fn (array $item): MerchantProfile => MerchantProfile::fromArray(['merchant_profile' => $item]),
             (array) ($response['merchant_profiles'] ?? []),
         );
 
@@ -56,7 +56,7 @@ final readonly class MerchantProfileResource
             items: $profiles,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
         );
     }
 

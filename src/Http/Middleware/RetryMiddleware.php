@@ -43,7 +43,7 @@ final class RetryMiddleware
                 return true;
             }
 
-            if (! $response instanceof \Psr\Http\Message\ResponseInterface) {
+            if (! $response instanceof ResponseInterface) {
                 return false;
             }
 

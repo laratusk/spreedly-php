@@ -57,7 +57,7 @@ final readonly class PaymentMethodResource
 
         $response = $this->transporter->get('payment_methods.json', $query);
         $paymentMethods = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\PaymentMethod => PaymentMethod::fromArray(['payment_method' => $item]),
+            static fn (array $item): PaymentMethod => PaymentMethod::fromArray(['payment_method' => $item]),
             (array) ($response['payment_methods'] ?? []),
         );
 
@@ -68,7 +68,7 @@ final readonly class PaymentMethodResource
             items: $paymentMethods,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
         );
     }
 
@@ -142,7 +142,7 @@ final readonly class PaymentMethodResource
 
         $response = $this->transporter->get("payment_methods/{$token}/transactions.json", $query);
         $transactions = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Transaction => Transaction::fromArray(['transaction' => $item]),
+            static fn (array $item): Transaction => Transaction::fromArray(['transaction' => $item]),
             (array) ($response['transactions'] ?? []),
         );
 
@@ -153,7 +153,7 @@ final readonly class PaymentMethodResource
             items: $transactions,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->transactions($token, $since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->transactions($token, $since, $order),
         );
     }
 
@@ -201,7 +201,7 @@ final readonly class PaymentMethodResource
 
         $response = $this->transporter->get('payment_methods/events.json', $query);
         $events = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Event => Event::fromArray(['event' => $item]),
+            static fn (array $item): Event => Event::fromArray(['event' => $item]),
             (array) ($response['events'] ?? []),
         );
 
@@ -212,7 +212,7 @@ final readonly class PaymentMethodResource
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->listEvents($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->listEvents($since),
         );
     }
 
@@ -230,7 +230,7 @@ final readonly class PaymentMethodResource
 
         $response = $this->transporter->get("payment_methods/{$token}/events.json", $query);
         $events = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Event => Event::fromArray(['event' => $item]),
+            static fn (array $item): Event => Event::fromArray(['event' => $item]),
             (array) ($response['events'] ?? []),
         );
 
@@ -241,7 +241,7 @@ final readonly class PaymentMethodResource
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->listEventsForPaymentMethod($token, $since),
+            fetcher: fn (string $since): PaginatedCollection => $this->listEventsForPaymentMethod($token, $since),
         );
     }
 

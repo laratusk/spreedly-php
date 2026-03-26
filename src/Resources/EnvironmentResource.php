@@ -34,7 +34,7 @@ final readonly class EnvironmentResource
 
         $response = $this->transporter->get('environments.json', $query);
         $environments = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\Environment => Environment::fromArray(['environment' => $item]),
+            static fn (array $item): Environment => Environment::fromArray(['environment' => $item]),
             (array) ($response['environments'] ?? []),
         );
 
@@ -45,7 +45,7 @@ final readonly class EnvironmentResource
             items: $environments,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
         );
     }
 
@@ -114,7 +114,7 @@ final readonly class EnvironmentResource
     {
         $response = $this->transporter->get("environments/{$envToken}/access_secrets.json");
         $secrets = array_map(
-            static fn (array $item): \Laratusk\Spreedly\DataTransferObjects\AccessSecret => AccessSecret::fromArray(['access_secret' => $item]),
+            static fn (array $item): AccessSecret => AccessSecret::fromArray(['access_secret' => $item]),
             (array) ($response['access_secrets'] ?? []),
         );
 
@@ -125,7 +125,7 @@ final readonly class EnvironmentResource
             items: $secrets,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): \Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection => $this->listAccessSecrets($envToken),
+            fetcher: fn (string $since): PaginatedCollection => $this->listAccessSecrets($envToken),
         );
     }
 
