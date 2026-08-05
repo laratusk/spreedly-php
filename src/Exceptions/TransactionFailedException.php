@@ -22,8 +22,6 @@ final class TransactionFailedException extends SpreedlyException
         parent::__construct(
             message: $message ?: sprintf('Transaction %s failed: %s', $transaction->token, $transaction->message ?? 'Unknown error'),
             code: 0,
-            errors: null,
-            httpStatus: null,
             previous: $previous,
         );
     }

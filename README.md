@@ -5,7 +5,7 @@ A production-ready PHP SDK for the [Spreedly payment orchestration API](https://
 ## Requirements
 
 - PHP ^8.2
-- Laravel ^10.0 || ^11.0 || ^12.0 (optional)
+- Laravel ^10.0 || ^11.0 || ^12.0 || ^13.0 (optional)
 
 ## Installation
 
