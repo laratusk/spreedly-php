@@ -5,6 +5,41 @@ All notable changes to `laratusk/spreedly` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-05
+
+### Added
+- **Laravel 13 support** is now official and documented in the requirements — `Laravel ^10.0 || ^11.0 || ^12.0 || ^13.0`
+
+### Changed
+- Replaced the abandoned `nunomaduro/larastan` dev dependency with the maintained `larastan/larastan`, and updated the `phpstan.neon` extension include path accordingly
+- The code-quality CI job (Pint, PHPStan, Rector) now runs against `laravel/framework:13.*`; the Laravel 10 and 11 test matrix legs install with `--no-blocking`, since those branches no longer receive security patches and Composer otherwise refuses to install them
+
+### Fixed
+- Removed redundant `errors: null` / `httpStatus: null` named arguments from the parent constructor call in `TransactionFailedException`
+
+## [1.3.1] - 2026-04-28
+
+### Added
+- **`StoredCredentialInitiator` enum** (`cardholder`, `merchant`) for Spreedly stored-credential transactions
+- **`StoredCredentialReasonType` enum** (`recurring`, `unscheduled`, `installment`)
+- **`EnumToArray` trait** providing `keys()`, `values()`, `array()`, `flip()` and `only()` helpers for backed enums
+
+## [1.3.0] - 2026-03-26
+
+### Fixed
+- Excluded PHP 8.2 from the Laravel 13 CI matrix — Laravel 13 requires PHP 8.3+
+
+### Changed
+- Code style: fully-qualified inline class references replaced with imported class names (Pint `fully_qualified_strict_types`) across the resource classes, `RetryMiddleware`, `PaginatedCollection` and the `SpreedlyCertificate` docblocks
+
+## [1.2.0] - 2026-03-16
+
+### Added
+- **Laravel 13** added to the CI test matrix (PHPStan 2 / Larastan 3 are installed for that leg, as they are for Laravel 12)
+
+### Changed
+- `orchestra/testbench` dev dependency widened to `^8.0 || ^9.0 || ^10.0 || ^11.0` to allow testing against Laravel 13
+
 ## [1.1.0] - 2026-03-03
 
 ### Added
