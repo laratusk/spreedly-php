@@ -20,9 +20,9 @@ test('retrieve sends GET request to correct endpoint', function (): void {
     $event = $resource->retrieve('Ev1gI6fHgIuUkVnmUGPA3xoVyB');
 
     expect($event)->toBeInstanceOf(Event::class);
-    expect($event->token)->toBe('Ev1gI6fHgIuUkVnmUGPA3xoVyB');
-    expect($event->eventType)->toBe('purchase');
-    expect($event->state)->toBe('delivered');
+    expect($event->id)->toBe('40790047-6ba0-41ea-88c8-42fe224e617b');
+    expect($event->eventType)->toBe('UpdatePaymentMethodReceiver');
+    expect($event->objectKey)->toBe('5QQ5532YER89MS729YG1R15DV3');
 });
 
 test('list returns paginated collection', function (): void {

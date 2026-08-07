@@ -86,6 +86,22 @@ abstract class IntegrationTestCase extends BaseTestCase
     }
 
     /**
+     * Register a payment method the test caused to exist, so the run cleans it up.
+     */
+    protected function trackPaymentMethod(?string $token): void
+    {
+        ($this->sandbox ??= Sandbox::for($this->spreedly))->trackPaymentMethod($token);
+    }
+
+    /**
+     * Register a receiver the test caused to exist, so the run cleans it up.
+     */
+    protected function trackReceiver(?string $token): void
+    {
+        ($this->sandbox ??= Sandbox::for($this->spreedly))->trackReceiver($token);
+    }
+
+    /**
      * Send a request and report the HTTP status, whatever the outcome.
      *
      * @param  array<string, mixed>  $payload

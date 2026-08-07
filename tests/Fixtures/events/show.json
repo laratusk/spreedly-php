@@ -1,12 +1,10 @@
 {
   "event": {
-    "token": "Ev1gI6fHgIuUkVnmUGPA3xoVyB",
-    "event_type": "purchase",
-    "state": "delivered",
-    "data": {
-      "transaction_token": "tx_123"
-    },
-    "created_at": "2024-01-15T10:00:00Z",
-    "updated_at": "2024-01-15T10:00:00Z"
+    "id": "40790047-6ba0-41ea-88c8-42fe224e617b",
+    "request_id": null,
+    "event_type": "UpdatePaymentMethodReceiver",
+    "object_type": "PaymentMethodReceiver",
+    "object_key": "5QQ5532YER89MS729YG1R15DV3",
+    "created_at": "2026-08-07T23:49:19Z"
   }
 }

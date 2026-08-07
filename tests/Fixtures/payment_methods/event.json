@@ -1,0 +1,15 @@
+{
+  "payment_method_event": {
+    "token": "PME123abc456DEF789ghi",
+    "request_id": "a1b2c3d4-0000-0000-0000-000000000000",
+    "created_at": "2024-01-15T10:00:00Z",
+    "payment_method_key": "56wyNnSmuA6en32YnlLFoJNFLSI",
+    "event_type": "card_updated",
+    "event_data": {
+      "previous_last_four_digits": "1111",
+      "new_last_four_digits": "4242"
+    },
+    "state": "succeeded",
+    "message": "Card updated"
+  }
+}

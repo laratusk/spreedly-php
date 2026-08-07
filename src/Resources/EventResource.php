@@ -43,7 +43,7 @@ final readonly class EventResource
             (array) ($response['events'] ?? []),
         );
 
-        $lastToken = $events === [] ? null : end($events)->token;
+        $lastToken = $events === [] ? null : end($events)->id;
         $hasMore = count($events) >= ($count ?? 20);
 
         return new PaginatedCollection(

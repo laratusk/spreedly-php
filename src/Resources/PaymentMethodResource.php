@@ -6,8 +6,8 @@ namespace Laratusk\Spreedly\Resources;
 
 use Laratusk\Spreedly\Contracts\TransporterInterface;
 use Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection;
-use Laratusk\Spreedly\DataTransferObjects\Event;
 use Laratusk\Spreedly\DataTransferObjects\PaymentMethod;
+use Laratusk\Spreedly\DataTransferObjects\PaymentMethodEvent;
 use Laratusk\Spreedly\DataTransferObjects\Transaction;
 
 /**
@@ -213,7 +213,7 @@ final readonly class PaymentMethodResource
      * List all payment method events.
      *
      * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
-     * @return PaginatedCollection<Event>
+     * @return PaginatedCollection<PaymentMethodEvent>
      */
     public function listEvents(?string $sinceToken = null, ?string $order = null, ?string $eventType = null, ?int $count = null, ?bool $includeTransactions = null): PaginatedCollection
     {
@@ -221,8 +221,8 @@ final readonly class PaymentMethodResource
 
         $response = $this->transporter->get('payment_methods/events.json', $query);
         $events = array_map(
-            static fn (array $item): Event => Event::fromArray(['event' => $item]),
-            (array) ($response['events'] ?? []),
+            static fn (array $item): PaymentMethodEvent => PaymentMethodEvent::fromArray(['payment_method_event' => $item]),
+            (array) ($response['payment_method_events'] ?? []),
         );
 
         $lastToken = $events === [] ? null : end($events)->token;
@@ -240,7 +240,7 @@ final readonly class PaymentMethodResource
      * List all events for a specific payment method.
      *
      * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
-     * @return PaginatedCollection<Event>
+     * @return PaginatedCollection<PaymentMethodEvent>
      */
     public function listEventsForPaymentMethod(string $token, ?string $sinceToken = null, ?string $order = null, ?string $eventType = null, ?int $count = null, ?bool $includeTransactions = null): PaginatedCollection
     {
@@ -248,8 +248,8 @@ final readonly class PaymentMethodResource
 
         $response = $this->transporter->get("payment_methods/{$token}/events.json", $query);
         $events = array_map(
-            static fn (array $item): Event => Event::fromArray(['event' => $item]),
-            (array) ($response['events'] ?? []),
+            static fn (array $item): PaymentMethodEvent => PaymentMethodEvent::fromArray(['payment_method_event' => $item]),
+            (array) ($response['payment_method_events'] ?? []),
         );
 
         $lastToken = $events === [] ? null : end($events)->token;
@@ -266,11 +266,11 @@ final readonly class PaymentMethodResource
     /**
      * Retrieve a specific payment method event by token.
      */
-    public function retrieveEvent(string $eventToken): Event
+    public function retrieveEvent(string $eventToken): PaymentMethodEvent
     {
         $response = $this->transporter->get("payment_methods/events/{$eventToken}.json");
 
-        return Event::fromArray($response);
+        return PaymentMethodEvent::fromArray($response);
     }
 
     /**

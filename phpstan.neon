@@ -20,3 +20,5 @@ parameters:
         - '#PHPUnit\\Framework\\TestCase::httpStatus\(\)#'
         - '#PHPUnit\\Framework\\TestCase::assertRouteExists\(\)#'
         - '#PHPUnit\\Framework\\TestCase::sandboxToken\(\)#'
+        - '#PHPUnit\\Framework\\TestCase::trackPaymentMethod\(\)#'
+        - '#PHPUnit\\Framework\\TestCase::trackReceiver\(\)#'

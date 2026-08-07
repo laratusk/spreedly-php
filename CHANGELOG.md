@@ -21,6 +21,8 @@ Correcting the endpoints below changed what their arguments mean, so every call 
 | `certificates->generate()` | certificate token | **params** (`algorithm`, `cn`, …) |
 | `environments->regenerateSigningSecret()` | no argument | **environment key** |
 | `Transaction::$apiUrls` | `?string` | `array` |
+| `Event::$token` | `string` | **`Event::$id`** — the API calls it `id`, and `$state`, `$data` and `$updatedAt` are gone; no such fields exist |
+| `paymentMethods->listEvents()` / `listEventsForPaymentMethod()` / `retrieveEvent()` | `Event` | **`PaymentMethodEvent`** — a different resource with a different shape |
 | `TransporterInterface::delete()` | `(string, array)` | `(string, array, array)` — custom implementations must add the third parameter |
 
 ### Added
@@ -30,6 +32,8 @@ Correcting the endpoints below changed what their arguments mean, so every call 
 - **`raw` on `Transaction` and `PaymentMethod`** — the payload each DTO was built from, so fields the SDK does not model yet (`third_party_token`, network-tokenisation detail, gateway-specific extras) remain reachable instead of being lost in parsing
 - **`TransactionState::Processing` and `TransactionState::GatewaySetupFailed`** — both documented transaction states that the enum could not represent
 - **Signed callback verification** — `Transaction::fromCallbackPayload()` parses the batch of transactions Spreedly POSTs to a `callback_url`, and `Transaction::verifySignature()` recomputes the HMAC over the signed fields in constant time. The `signed` block was previously dropped, so there was no way to tell a real callback from a forged one
+- **`PaymentMethodEvent`** — payment method events are a separate resource from environment events, with their own envelope (`payment_method_events`) and fields (`payment_method_key`, `event_data`, `state`, `message`). They had been forced through the `Event` DTO
+- **`raw` on `Event` and `PaymentMethodEvent`**, alongside `Certificate` and `ProtectionEvent`
 - **`raw` on `Certificate` and `ProtectionEvent`** — same escape hatch as `Transaction` and `PaymentMethod`, reaching `public_key_hash` on a generated certificate and the fraud-check detail on a protection event
 - **Documented list filters that the SDK never sent** — `count` on transactions, payment methods, events, payment method events, gateways, environments, merchant profiles, sub merchants, card refresher inquiries and protection events; `state` on transactions, payment methods, gateway transactions and protection events; `event_type` and `include_transactions` on events; `metadata` on payment methods; `order` on certificates, environments, merchant profiles, sub merchants, card refresher inquiries and protection events
 - **`PaymentMethodResource::deleteMetadata()` now takes the keys to remove**, and `TransporterInterface::delete()` accepts a request body, which the endpoint requires
@@ -50,6 +54,7 @@ Correcting the endpoints below changed what their arguments mean, so every call 
   - Signing secret: `environments/regenerate_signing_secret` → `environments/{environment_key}/regenerate_signing_secret`
   - Card refresher listing: `card_refresher/inquiry` → `card_refresher/inquiries`, and creating one now uses the `card_refresher_inquiry` request envelope
 - **`paymentMethods->create()` returned an empty payment method.** Creating one answers with a `transaction` envelope carrying the payment method, not a bare `payment_method`, so `PaymentMethod::fromArray()` found nothing and every field came back empty — including the token. The unit fixture had been written by hand with the wrong envelope, so the mocked test agreed with the bug. Found by the new integration suite, and the fixture is now a captured real response
+- **Both event endpoints parsed to empty objects.** `/v1/events` returns `id`, `request_id`, `event_type`, `object_type` and `object_key` — the `Event` DTO read `token`, `state` and `data`, none of which the API sends, so every listed event came back blank. Payment method events were read from an `events` envelope that does not exist (it is `payment_method_events`) and mapped onto the same wrong DTO. Both fixtures had been hand-written, so the mocked tests agreed with the bugs. Found by the new integration suite
 - **`Transaction::$apiUrls` is an array**. Spreedly returns `api_urls` as a hash, so casting it to a string emitted an "Array to string conversion" warning and stored the literal `"Array"`
 
 ## [1.4.0] - 2026-08-05

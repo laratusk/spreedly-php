@@ -387,10 +387,21 @@ $spreedly->environments->regenerateSigningSecret('env_key');
 
 > **Docs:** [Events API](https://developer.spreedly.com/reference/events)
 
+Environment events record what changed and which object it changed. They are
+identified by `id`, not a token.
+
 ```php
-$events = $spreedly->events->list(eventType: 'card_updated', count: 100);
-$event = $spreedly->events->retrieve('event_token');
+$events = $spreedly->events->list(count: 100);
+
+foreach ($events->items as $event) {
+    echo "{$event->eventType} on {$event->objectType} {$event->objectKey}";
+}
+
+$event = $spreedly->events->retrieve($events->items[0]->id);
 ```
+
+> Payment method events are a **different** resource with a different shape — see
+> [Payment Method Events](#payment-method-events) below.
 
 ### Merchant Profiles
 
@@ -620,8 +631,12 @@ $events = $spreedly->paymentMethods->listEvents(eventType: 'card_updated', inclu
 // List events for a specific payment method
 $events = $spreedly->paymentMethods->listEventsForPaymentMethod('pm_token');
 
-// Retrieve a specific event
+// Retrieve a specific event; these are PaymentMethodEvent, not Event
 $event = $spreedly->paymentMethods->retrieveEvent('event_token');
+
+echo $event->eventType;         // e.g. 'card_updated'
+echo $event->paymentMethodKey;
+$event->eventData;              // what changed
 
 // Update a payment method without a charge (gratis)
 $pm = $spreedly->paymentMethods->updateGratis('pm_token', [

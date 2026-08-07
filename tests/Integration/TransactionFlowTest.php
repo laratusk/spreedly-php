@@ -40,6 +40,8 @@ test('store copies the payment method into the gateway vault', function (): void
         'payment_method_token' => $this->sandboxToken('payment method'),
     ]);
 
+    $this->trackPaymentMethod($tx->paymentMethod?->token);
+
     expect($tx->succeeded)->toBeTrue();
     expect($tx->paymentMethod?->paymentMethodType)->toBe('third_party_token');
 });

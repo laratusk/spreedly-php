@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Laratusk\Spreedly\Contracts\TransporterInterface;
 use Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection;
-use Laratusk\Spreedly\DataTransferObjects\Event;
 use Laratusk\Spreedly\DataTransferObjects\PaymentMethod;
+use Laratusk\Spreedly\DataTransferObjects\PaymentMethodEvent;
 use Laratusk\Spreedly\DataTransferObjects\Transaction;
 use Laratusk\Spreedly\Resources\PaymentMethodResource;
 
@@ -207,20 +207,21 @@ test('networkTokenizationStatus sends GET request to correct endpoint', function
 });
 
 test('listEvents returns paginated collection of events', function (): void {
-    $eventFixture = $this->loadFixture('events/show.json')['event'];
+    $eventFixture = $this->loadFixture('payment_methods/event.json')['payment_method_event'];
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
         ->with('payment_methods/events.json', [])
-        ->andReturn(['events' => [$eventFixture]]);
+        ->andReturn(['payment_method_events' => [$eventFixture]]);
 
     $resource = new PaymentMethodResource($transporter);
     $collection = $resource->listEvents();
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(1);
-    expect($collection->items[0])->toBeInstanceOf(Event::class);
+    expect($collection->items[0])->toBeInstanceOf(PaymentMethodEvent::class);
+    expect($collection->items[0]->token)->toBe('PME123abc456DEF789ghi');
 });
 
 test('listEvents passes since_token for pagination', function (): void {
@@ -228,7 +229,7 @@ test('listEvents passes since_token for pagination', function (): void {
     $transporter->shouldReceive('get')
         ->once()
         ->with('payment_methods/events.json', ['since_token' => 'tok123'])
-        ->andReturn(['events' => []]);
+        ->andReturn(['payment_method_events' => []]);
 
     $resource = new PaymentMethodResource($transporter);
     $collection = $resource->listEvents('tok123');
@@ -238,24 +239,24 @@ test('listEvents passes since_token for pagination', function (): void {
 });
 
 test('listEventsForPaymentMethod returns paginated collection', function (): void {
-    $eventFixture = $this->loadFixture('events/show.json')['event'];
+    $eventFixture = $this->loadFixture('payment_methods/event.json')['payment_method_event'];
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
         ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/events.json', [])
-        ->andReturn(['events' => [$eventFixture]]);
+        ->andReturn(['payment_method_events' => [$eventFixture]]);
 
     $resource = new PaymentMethodResource($transporter);
     $collection = $resource->listEventsForPaymentMethod('56wyNnSmuA6en32YnlLFoJNFLSI');
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(1);
-    expect($collection->items[0])->toBeInstanceOf(Event::class);
+    expect($collection->items[0])->toBeInstanceOf(PaymentMethodEvent::class);
 });
 
 test('retrieveEvent sends GET request to correct endpoint', function (): void {
-    $fixture = $this->loadFixture('events/show.json');
+    $fixture = $this->loadFixture('payment_methods/event.json');
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
@@ -266,7 +267,8 @@ test('retrieveEvent sends GET request to correct endpoint', function (): void {
     $resource = new PaymentMethodResource($transporter);
     $event = $resource->retrieveEvent('EVT123abc456DEF789ghi');
 
-    expect($event)->toBeInstanceOf(Event::class);
+    expect($event)->toBeInstanceOf(PaymentMethodEvent::class);
+    expect($event->token)->toBe('PME123abc456DEF789ghi');
 });
 
 test('updateGratis sends PUT request to update_gratis endpoint', function (): void {
