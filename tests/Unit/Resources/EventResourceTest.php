@@ -54,3 +54,15 @@ test('list passes since_token for pagination', function (): void {
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
 });
+
+test('list forwards the event_type and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('events.json', ['order' => 'desc', 'event_type' => 'card_updated', 'count' => 100])
+        ->andReturn(['events' => []]);
+
+    $resource = new EventResource($transporter);
+
+    expect($resource->list(eventType: 'card_updated', count: 100)->count())->toBe(0);
+});

@@ -278,17 +278,17 @@ test('confirm sends POST with params', function (): void {
     expect($tx)->toBeInstanceOf(Transaction::class);
 });
 
-test('referencePurchase sends POST to gateway purchase endpoint', function (): void {
+test('referencePurchase sends POST to the referenced transaction', function (): void {
     $fixture = $this->loadFixture('transactions/purchase.json');
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('gateways/gw_token/purchase.json', ['transaction' => ['reference_token' => 'ref_tok', 'amount' => 1000, 'currency_code' => 'USD']])
+        ->with('transactions/ref_tok/purchase.json', ['transaction' => ['amount' => 1000, 'currency_code' => 'USD']])
         ->andReturn($fixture);
 
     $resource = new TransactionResource($transporter);
-    $tx = $resource->referencePurchase('gw_token', ['reference_token' => 'ref_tok', 'amount' => 1000, 'currency_code' => 'USD']);
+    $tx = $resource->referencePurchase('ref_tok', ['amount' => 1000, 'currency_code' => 'USD']);
 
     expect($tx)->toBeInstanceOf(Transaction::class);
     expect($tx->succeeded)->toBeTrue();
@@ -306,4 +306,17 @@ test('list passes since_token for pagination', function (): void {
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(0);
+});
+
+test('list forwards the state and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('transactions.json', ['order' => 'asc', 'state' => 'gateway_processing_failed', 'count' => 100])
+        ->andReturn(['transactions' => []]);
+
+    $resource = new TransactionResource($transporter);
+    $collection = $resource->list(order: 'asc', state: 'gateway_processing_failed', count: 100);
+
+    expect($collection->hasMore)->toBeFalse();
 });

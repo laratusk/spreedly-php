@@ -156,13 +156,22 @@ final readonly class TransactionResource
     /**
      * List transactions.
      *
+     * @param  string|null  $state  One of succeeded, failed, gateway_processing_failed,
+     *                              gateway_processing_result_unknown
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
      * @return PaginatedCollection<Transaction>
      */
-    public function list(?string $sinceToken = null, string $order = 'desc'): PaginatedCollection
+    public function list(?string $sinceToken = null, string $order = 'desc', ?string $state = null, ?int $count = null): PaginatedCollection
     {
         $query = ['order' => $order];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($state !== null) {
+            $query['state'] = $state;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('transactions.json', $query);
@@ -172,13 +181,13 @@ final readonly class TransactionResource
         );
 
         $lastToken = $transactions === [] ? null : end($transactions)->token;
-        $hasMore = count($transactions) >= 20;
+        $hasMore = count($transactions) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $transactions,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $state, $count),
         );
     }
 
@@ -191,13 +200,15 @@ final readonly class TransactionResource
     }
 
     /**
-     * Perform a reference purchase (using a reference_token from a previous transaction).
+     * Perform a reference purchase against a previous transaction, reusing the
+     * payment method and stored credential details it was run with.
      *
-     * @param  array<string, mixed>  $params  Must include 'reference_token', 'amount', 'currency_code'
+     * @param  string  $transactionToken  The transaction being referenced, not a gateway token
+     * @param  array<string, mixed>  $params  Optionally include 'amount' (cents) and 'currency_code'
      */
-    public function referencePurchase(string $gatewayToken, array $params): Transaction
+    public function referencePurchase(string $transactionToken, array $params = []): Transaction
     {
-        $response = $this->transporter->post("gateways/{$gatewayToken}/purchase.json", ['transaction' => $params]);
+        $response = $this->transporter->post("transactions/{$transactionToken}/purchase.json", $params !== [] ? ['transaction' => $params] : []);
 
         return Transaction::fromArray($response);
     }

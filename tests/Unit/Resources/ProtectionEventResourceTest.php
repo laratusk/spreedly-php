@@ -13,7 +13,7 @@ test('list returns paginated collection', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('protection_events.json', [])
+        ->with('protection/events.json', [])
         ->andReturn($fixture);
 
     $resource = new ProtectionEventResource($transporter);
@@ -30,7 +30,7 @@ test('list passes since_token for pagination', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('protection_events.json', ['since_token' => 'some_token'])
+        ->with('protection/events.json', ['since_token' => 'some_token'])
         ->andReturn(['protection_events' => []]);
 
     $resource = new ProtectionEventResource($transporter);
@@ -46,7 +46,7 @@ test('retrieve sends GET request to correct endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('protection_events/PE1234567890abcdefghi.json')
+        ->with('protection/events/PE1234567890abcdefghi.json')
         ->andReturn($fixture);
 
     $resource = new ProtectionEventResource($transporter);
@@ -57,4 +57,16 @@ test('retrieve sends GET request to correct endpoint', function (): void {
     expect($event->eventType)->toBe('card_updated');
     expect($event->state)->toBe('succeeded');
     expect($event->paymentMethodToken)->toBe('PM1234567890abcdefgh');
+});
+
+test('list forwards the order, state and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('protection/events.json', ['order' => 'asc', 'state' => 'pending', 'count' => 15])
+        ->andReturn(['events' => []]);
+
+    $resource = new ProtectionEventResource($transporter);
+
+    expect($resource->list(order: 'asc', state: 'pending', count: 15)->count())->toBe(0);
 });

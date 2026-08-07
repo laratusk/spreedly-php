@@ -47,11 +47,14 @@ final readonly class GatewayResource
      *
      * @return PaginatedCollection<Gateway>
      */
-    public function list(?string $sinceToken = null, string $order = 'desc'): PaginatedCollection
+    public function list(?string $sinceToken = null, string $order = 'desc', ?int $count = null): PaginatedCollection
     {
         $query = ['order' => $order];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('gateways.json', $query);
@@ -61,13 +64,13 @@ final readonly class GatewayResource
         );
 
         $lastToken = $gateways === [] ? null : end($gateways)->token;
-        $hasMore = count($gateways) >= 20;
+        $hasMore = count($gateways) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $gateways,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $count),
         );
     }
 
@@ -108,11 +111,14 @@ final readonly class GatewayResource
      *
      * @return PaginatedCollection<Transaction>
      */
-    public function transactions(string $token, ?string $sinceToken = null, string $order = 'desc'): PaginatedCollection
+    public function transactions(string $token, ?string $sinceToken = null, string $order = 'desc', ?string $state = null): PaginatedCollection
     {
         $query = ['order' => $order];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($state !== null) {
+            $query['state'] = $state;
         }
 
         $response = $this->transporter->get("gateways/{$token}/transactions.json", $query);
@@ -128,7 +134,7 @@ final readonly class GatewayResource
             items: $transactions,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->transactions($token, $since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->transactions($token, $since, $order, $state),
         );
     }
 

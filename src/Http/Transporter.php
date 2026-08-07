@@ -156,6 +156,7 @@ final readonly class Transporter implements TransporterInterface
 
     /**
      * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      *
      * @throws ApiException
@@ -166,11 +167,14 @@ final readonly class Transporter implements TransporterInterface
      * @throws NotFoundException
      * @throws RateLimitException
      */
-    public function delete(string $endpoint, array $query = []): array
+    public function delete(string $endpoint, array $query = [], array $payload = []): array
     {
         $options = [];
         if ($query !== []) {
             $options['query'] = $query;
+        }
+        if ($payload !== []) {
+            $options['json'] = $payload;
         }
 
         return $this->request('DELETE', $endpoint, $options);

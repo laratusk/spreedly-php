@@ -34,13 +34,20 @@ final readonly class SubMerchantResource
     /**
      * List all sub merchants.
      *
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
      * @return PaginatedCollection<SubMerchant>
      */
-    public function list(?string $sinceToken = null): PaginatedCollection
+    public function list(?string $sinceToken = null, ?string $order = null, ?int $count = null): PaginatedCollection
     {
         $query = [];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($order !== null) {
+            $query['order'] = $order;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('sub_merchants.json', $query);
@@ -50,13 +57,13 @@ final readonly class SubMerchantResource
         );
 
         $lastToken = $subMerchants === [] ? null : end($subMerchants)->token;
-        $hasMore = count($subMerchants) >= 20;
+        $hasMore = count($subMerchants) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $subMerchants,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $count),
         );
     }
 

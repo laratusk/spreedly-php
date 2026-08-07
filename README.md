@@ -249,8 +249,9 @@ $pms = $spreedly->paymentMethods->list();
 // Update
 $spreedly->paymentMethods->update('pm_token', ['first_name' => 'Jane']);
 
-// Retain (prevent auto-removal)
+// Retain (prevent auto-removal), optionally provisioning a network token
 $spreedly->paymentMethods->retain('pm_token');
+$spreedly->paymentMethods->retain('pm_token', provisionNetworkToken: true);
 
 // Redact (remove sensitive data)
 $spreedly->paymentMethods->redact('pm_token');
@@ -258,8 +259,19 @@ $spreedly->paymentMethods->redact('pm_token');
 // Recache CVV
 $spreedly->paymentMethods->recache('pm_token', ['verification_value' => '456']);
 
-// Store at gateway
-$spreedly->paymentMethods->store('pm_token', ['gateway_token' => 'gw_token']);
+// Copy the card into a gateway's own vault (third-party vaulting).
+// The first argument is the gateway to store at, not the payment method.
+$spreedly->paymentMethods->store('gw_token', ['payment_method_token' => 'pm_token']);
+
+// Remove specific metadata keys
+$spreedly->paymentMethods->deleteMetadata('pm_token', ['plan', 'campaign']);
+
+// Filter the list
+$pms = $spreedly->paymentMethods->list(
+    state: 'retained',
+    metadata: 'plan:pro',
+    count: 100,
+);
 ```
 
 ### Transactions
@@ -312,11 +324,15 @@ $spreedly->transactions->verify('gateway_token', [
 // Retrieve a transaction
 $tx = $spreedly->transactions->retrieve('transaction_token');
 
-// List transactions
-$transactions = $spreedly->transactions->list();
+// List transactions, optionally filtered by state and page size
+$transactions = $spreedly->transactions->list(state: 'gateway_processing_failed', count: 100);
 
 // Get transcript (raw gateway communication)
 $transcript = $spreedly->transactions->transcript('transaction_token');
+
+// Reference purchase — charge again against a previous transaction, reusing its
+// payment method and stored credential details
+$again = $spreedly->transactions->referencePurchase($purchase->token, ['amount' => 800]);
 ```
 
 ### Receivers
@@ -347,7 +363,12 @@ $spreedly->receivers->deliver('receiver_token', [...]);
 $cert = $spreedly->certificates->create([...]);
 $certs = $spreedly->certificates->list();
 $spreedly->certificates->update('cert_token', [...]);
-$spreedly->certificates->generate('cert_token');
+
+// Have Spreedly generate the key pair, so the private key never leaves their vault
+$cert = $spreedly->certificates->generate([
+    'algorithm' => 'ec-prime256v1',
+    'cn' => 'MyApp ApplePay Production Certificate',
+]);
 ```
 
 ### Environments
@@ -359,7 +380,7 @@ $envs = $spreedly->environments->list();
 $env = $spreedly->environments->create([...]);
 $env = $spreedly->environments->retrieve('env_token');
 $spreedly->environments->update('env_token', [...]);
-$spreedly->environments->regenerateSigningSecret();
+$spreedly->environments->regenerateSigningSecret('env_key');
 ```
 
 ### Events
@@ -367,7 +388,7 @@ $spreedly->environments->regenerateSigningSecret();
 > **Docs:** [Events API](https://developer.spreedly.com/reference/events)
 
 ```php
-$events = $spreedly->events->list();
+$events = $spreedly->events->list(eventType: 'card_updated', count: 100);
 $event = $spreedly->events->retrieve('event_token');
 ```
 
@@ -397,7 +418,11 @@ $spreedly->composer->verify([...]);
 > **Docs:** [SCA Authentication API](https://developer.spreedly.com/reference/sca-authentication)
 
 ```php
-$spreedly->scaAuthentication->authenticate([...]);
+$spreedly->scaAuthentication->authenticate('sca_provider_key', [
+    'payment_method_token' => 'pm_token',
+    'amount' => 1000,
+    'currency_code' => 'EUR',
+]);
 ```
 
 ### Asynchronous transactions (3DS2 and offsite)
@@ -440,6 +465,34 @@ Finish the transaction with `$spreedly->transactions->complete($tx->token)`.
 The three sub-responses often hold error detail that the top-level `message` does
 not, which is what makes a failed authentication diagnosable.
 
+### Callbacks and signed requests
+
+> **Docs:** [Signed requests](https://developer.spreedly.com/docs/signed-requests)
+
+The redirect back to your site is not guaranteed to happen, so Spreedly also POSTs
+every transaction that changed to your `callback_url`. That channel is not
+authenticated, so the critical fields are signed with the environment's signing
+secret — never an access secret.
+
+```php
+$transactions = Transaction::fromCallbackPayload($request->json()->all());
+
+foreach ($transactions as $tx) {
+    if (! $tx->verifySignature(config('services.spreedly.signing_secret'))) {
+        abort(400);
+    }
+
+    // Safe to act on.
+    $order->markPaid($tx->token);
+}
+```
+
+`verifySignature()` recomputes the HMAC over exactly the fields the payload says
+were signed, and compares in constant time. An unsigned transaction returns
+`false`, so "not signed" and "signed but tampered with" fail the same way.
+
+Roll the secret with `$spreedly->environments->regenerateSigningSecret('env_key')`.
+
 ### Raw payloads
 
 Every `Transaction` and `PaymentMethod` keeps the payload it was built from, so a
@@ -474,6 +527,7 @@ Keeps stored payment methods up-to-date by fetching the latest card details from
 // Submit a card for refreshing
 $inquiry = $spreedly->cardRefresher->create([
     'payment_method_token' => 'pm_token',
+    'region' => 'NA',
 ]);
 
 // Retrieve an existing inquiry
@@ -487,9 +541,13 @@ $inquiries = $spreedly->cardRefresher->list();
 
 > **Docs:** [Claim API](https://developer.spreedly.com/reference/claim)
 
+Forward a chargeback claim for a transaction to its protection provider.
+
 ```php
-$result = $spreedly->claim->create([
-    'payment_method_token' => 'pm_token',
+$result = $spreedly->claim->create('transaction_token', [
+    'reason_type' => 'FRAUD',
+    'amount' => 1000,
+    'currency' => 'USD',
 ]);
 ```
 
@@ -509,7 +567,7 @@ Protection events are created when Spreedly detects a change to a stored payment
 
 ```php
 // List all protection events
-$events = $spreedly->protectionEvents->list();
+$events = $spreedly->protectionEvents->list(state: 'succeeded', count: 100);
 
 // Retrieve a specific event
 $event = $spreedly->protectionEvents->retrieve('event_token');
@@ -557,7 +615,7 @@ $status = $spreedly->paymentMethods->networkTokenizationStatus('pm_token');
 
 ```php
 // List all payment method events (across all payment methods)
-$events = $spreedly->paymentMethods->listEvents();
+$events = $spreedly->paymentMethods->listEvents(eventType: 'card_updated', includeTransactions: true);
 
 // List events for a specific payment method
 $events = $spreedly->paymentMethods->listEventsForPaymentMethod('pm_token');
@@ -577,17 +635,23 @@ $pm = $spreedly->paymentMethods->updateGratis('pm_token', [
 > **Docs:** [Merchant Profiles API](https://developer.spreedly.com/reference/merchant-profiles)
 
 ```php
+Providers are created on a merchant profile but are retrieved by their own token.
+At least one card type object must be given.
+
+```php
 // Protection provider
-$spreedly->merchantProfiles->createProtectionProvider('mp_token', [
-    'provider_type' => 'kount',
+$provider = $spreedly->merchantProfiles->createProtectionProvider('mp_token', [
+    'type' => 'spreedly',
+    'visa' => [...],
 ]);
-$spreedly->merchantProfiles->retrieveProtectionProvider('mp_token');
+$spreedly->merchantProfiles->retrieveProtectionProvider($provider['protection_provider']['token']);
 
 // SCA provider
-$spreedly->merchantProfiles->createScaProvider('mp_token', [
-    'provider_type' => 'stripe_radar',
+$sca = $spreedly->merchantProfiles->createScaProvider('mp_token', [
+    'type' => 'spreedly',
+    'visa' => [...],
 ]);
-$spreedly->merchantProfiles->retrieveScaProvider('mp_token');
+$spreedly->merchantProfiles->retrieveScaProvider($sca['sca_provider']['token']);
 ```
 
 ## Pagination

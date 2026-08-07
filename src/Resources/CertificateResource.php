@@ -37,11 +37,14 @@ final readonly class CertificateResource
      *
      * @return PaginatedCollection<Certificate>
      */
-    public function list(?string $sinceToken = null): PaginatedCollection
+    public function list(?string $sinceToken = null, ?string $order = null): PaginatedCollection
     {
         $query = [];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($order !== null) {
+            $query['order'] = $order;
         }
 
         $response = $this->transporter->get('certificates.json', $query);
@@ -57,7 +60,7 @@ final readonly class CertificateResource
             items: $certificates,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
         );
     }
 
@@ -74,11 +77,16 @@ final readonly class CertificateResource
     }
 
     /**
-     * Generate a certificate (creates the actual certificate from a CSR).
+     * Have Spreedly generate a key pair and a self-signed certificate, so the private
+     * key never leaves their vault.
+     *
+     * @param  array<string, mixed>  $params  Must include 'algorithm' ('ec-prime256v1' or
+     *                                        'rsa-2048') and 'cn'; optionally 'o', 'ou', 'c',
+     *                                        'st', 'l' and 'email_address'
      */
-    public function generate(string $token): Certificate
+    public function generate(array $params): Certificate
     {
-        $response = $this->transporter->post("certificates/{$token}/generate.json");
+        $response = $this->transporter->post('certificates/generate.json', ['certificate' => $params]);
 
         return Certificate::fromArray($response);
     }

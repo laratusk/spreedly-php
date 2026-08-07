@@ -13,11 +13,11 @@ test('create sends POST request to correct endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('card_refresher/inquiry.json', ['inquiry' => ['payment_method_token' => 'PM1234567890abcdefgh']])
+        ->with('card_refresher/inquiry.json', ['card_refresher_inquiry' => ['payment_method_token' => 'PM1234567890abcdefgh', 'region' => 'NA']])
         ->andReturn($fixture);
 
     $resource = new CardRefresherResource($transporter);
-    $inquiry = $resource->create(['payment_method_token' => 'PM1234567890abcdefgh']);
+    $inquiry = $resource->create(['payment_method_token' => 'PM1234567890abcdefgh', 'region' => 'NA']);
 
     expect($inquiry)->toBeInstanceOf(CardRefresherInquiry::class);
     expect($inquiry->token)->toBe('CRI123abc456DEF789ghi');
@@ -48,7 +48,7 @@ test('list returns paginated collection', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('card_refresher/inquiry.json', [])
+        ->with('card_refresher/inquiries.json', [])
         ->andReturn($fixture);
 
     $resource = new CardRefresherResource($transporter);
@@ -65,7 +65,7 @@ test('list passes since_token for pagination', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('card_refresher/inquiry.json', ['since_token' => 'some_token'])
+        ->with('card_refresher/inquiries.json', ['since_token' => 'some_token'])
         ->andReturn(['inquiries' => []]);
 
     $resource = new CardRefresherResource($transporter);
@@ -73,4 +73,16 @@ test('list passes since_token for pagination', function (): void {
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(0);
+});
+
+test('list forwards the order and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('card_refresher/inquiries.json', ['order' => 'asc', 'count' => 10])
+        ->andReturn(['inquiries' => []]);
+
+    $resource = new CardRefresherResource($transporter);
+
+    expect($resource->list(order: 'asc', count: 10)->count())->toBe(0);
 });

@@ -23,13 +23,20 @@ final readonly class EnvironmentResource
     /**
      * List all environments.
      *
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
      * @return PaginatedCollection<Environment>
      */
-    public function list(?string $sinceToken = null): PaginatedCollection
+    public function list(?string $sinceToken = null, ?string $order = null, ?int $count = null): PaginatedCollection
     {
         $query = [];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($order !== null) {
+            $query['order'] = $order;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('environments.json', $query);
@@ -39,13 +46,13 @@ final readonly class EnvironmentResource
         );
 
         $lastToken = $environments === [] ? null : end($environments)->key;
-        $hasMore = count($environments) >= 20;
+        $hasMore = count($environments) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $environments,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $count),
         );
     }
 
@@ -84,13 +91,13 @@ final readonly class EnvironmentResource
     }
 
     /**
-     * Regenerate the signing secret for the current environment.
+     * Regenerate the signing secret used to sign callbacks from an environment.
      *
      * @return array<string, mixed>
      */
-    public function regenerateSigningSecret(): array
+    public function regenerateSigningSecret(string $environmentKey): array
     {
-        return $this->transporter->post('environments/regenerate_signing_secret.json');
+        return $this->transporter->post("environments/{$environmentKey}/regenerate_signing_secret.json");
     }
 
     /**

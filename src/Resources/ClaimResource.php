@@ -18,13 +18,14 @@ final readonly class ClaimResource
     ) {}
 
     /**
-     * Create a claim.
+     * Forward a chargeback claim for a transaction to its protection provider.
      *
-     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $params  Must include 'reason_type'; see the reference for the
+     *                                        supported claim fields
      * @return array<string, mixed>
      */
-    public function create(array $params): array
+    public function create(string $transactionToken, array $params): array
     {
-        return $this->transporter->post('claim.json', $params);
+        return $this->transporter->post("protection/{$transactionToken}/claims.json", ['claim' => $params]);
     }
 }

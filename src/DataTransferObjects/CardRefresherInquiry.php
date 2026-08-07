@@ -27,7 +27,9 @@ final readonly class CardRefresherInquiry
      */
     public static function fromArray(array $data): self
     {
-        $inquiry = $data['inquiry'] ?? $data;
+        // Creating an inquiry answers with a `transaction` envelope; showing and
+        // listing them answer with `inquiry`.
+        $inquiry = $data['inquiry'] ?? $data['transaction'] ?? $data;
 
         return new self(
             token: (string) ($inquiry['token'] ?? ''),

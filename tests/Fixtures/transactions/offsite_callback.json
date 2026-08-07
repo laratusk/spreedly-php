@@ -1,0 +1,34 @@
+{
+  "transactions": [
+    {
+      "amount": 100,
+      "on_test_gateway": false,
+      "created_at": "2021-04-07T20:35:10Z",
+      "updated_at": "2021-04-07T20:35:11Z",
+      "currency_code": "USD",
+      "succeeded": true,
+      "state": "succeeded",
+      "token": "5AG4P7FPjlfIA6aED6AgZvUEehx",
+      "transaction_type": "OffsitePurchase",
+      "order_id": null,
+      "ip": null,
+      "callback_url": "https://example.com/handle_callback",
+      "api_urls": {
+        "callback_conversations": "https://core.spreedly.com/v1/callbacks/XjCHPJad2pDbIKKq2fOJezXmxiM/conversations.json"
+      },
+      "signed": {
+        "signature": "f02c1189622670b0c5ab970f0f5b65e6d91cf817",
+        "fields": "amount callback_url created_at currency_code ip on_test_gateway order_id state succeeded token transaction_type updated_at",
+        "algorithm": "sha1"
+      }
+    },
+    {
+      "token": "8nPmoMc9HHl024jgZEjeoyE4rVP",
+      "transaction_type": "OffsitePurchase",
+      "succeeded": false,
+      "state": "gateway_setup_failed",
+      "created_at": "2021-04-07T20:36:10Z",
+      "updated_at": "2021-04-07T20:36:11Z"
+    }
+  ]
+}

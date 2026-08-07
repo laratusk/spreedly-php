@@ -14,4 +14,6 @@ enum PaymentMethodType: string
     case NetworkToken = 'network_token';
     case AndroidPay = 'android_pay';
     case SpAccount = 'spAccount';
+    // The redirect-backed payment method an offsite or 3DS2 transaction is created with.
+    case Sprel = 'sprel';
 }

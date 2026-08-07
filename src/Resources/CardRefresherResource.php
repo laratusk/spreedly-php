@@ -22,11 +22,12 @@ final readonly class CardRefresherResource
     /**
      * Create a card refresher inquiry.
      *
-     * @param  array<string, mixed>  $params  Must include 'payment_method_token'.
+     * @param  array<string, mixed>  $params  Must include 'payment_method_token' and 'region'
+     *                                        (one of NA, EU, LATAM).
      */
     public function create(array $params): CardRefresherInquiry
     {
-        $response = $this->transporter->post('card_refresher/inquiry.json', ['inquiry' => $params]);
+        $response = $this->transporter->post('card_refresher/inquiry.json', ['card_refresher_inquiry' => $params]);
 
         return CardRefresherInquiry::fromArray($response);
     }
@@ -44,29 +45,36 @@ final readonly class CardRefresherResource
     /**
      * List all card refresher inquiries.
      *
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
      * @return PaginatedCollection<CardRefresherInquiry>
      */
-    public function list(?string $sinceToken = null): PaginatedCollection
+    public function list(?string $sinceToken = null, ?string $order = null, ?int $count = null): PaginatedCollection
     {
         $query = [];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
         }
+        if ($order !== null) {
+            $query['order'] = $order;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
+        }
 
-        $response = $this->transporter->get('card_refresher/inquiry.json', $query);
+        $response = $this->transporter->get('card_refresher/inquiries.json', $query);
         $inquiries = array_map(
             static fn (array $item): CardRefresherInquiry => CardRefresherInquiry::fromArray(['inquiry' => $item]),
             (array) ($response['inquiries'] ?? []),
         );
 
         $lastToken = $inquiries === [] ? null : end($inquiries)->token;
-        $hasMore = count($inquiries) >= 20;
+        $hasMore = count($inquiries) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $inquiries,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $count),
         );
     }
 }

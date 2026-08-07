@@ -13,6 +13,7 @@ final readonly class ProtectionEvent
 {
     /**
      * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $raw
      */
     public function __construct(
         public string $token,
@@ -23,6 +24,7 @@ final readonly class ProtectionEvent
         public array $data,
         public CarbonImmutable $createdAt,
         public CarbonImmutable $updatedAt,
+        public array $raw = [],
     ) {}
 
     /**
@@ -30,7 +32,7 @@ final readonly class ProtectionEvent
      */
     public static function fromArray(array $data): self
     {
-        $event = $data['protection_event'] ?? $data;
+        $event = $data['protection_event'] ?? $data['event'] ?? $data;
 
         return new self(
             token: (string) ($event['token'] ?? ''),
@@ -41,6 +43,7 @@ final readonly class ProtectionEvent
             data: (array) ($event['data'] ?? []),
             createdAt: CarbonImmutable::parse($event['created_at'] ?? 'now'),
             updatedAt: CarbonImmutable::parse($event['updated_at'] ?? 'now'),
+            raw: (array) $event,
         );
     }
 

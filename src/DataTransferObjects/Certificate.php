@@ -11,6 +11,9 @@ use Carbon\CarbonImmutable;
  */
 final readonly class Certificate
 {
+    /**
+     * @param  array<string, mixed>  $raw
+     */
     public function __construct(
         public string $token,
         public string $state,
@@ -22,6 +25,7 @@ final readonly class Certificate
         public CarbonImmutable $createdAt,
         public CarbonImmutable $updatedAt,
         public ?string $expiresAt,
+        public array $raw = [],
     ) {}
 
     /**
@@ -36,12 +40,13 @@ final readonly class Certificate
             state: (string) ($cert['state'] ?? ''),
             commonName: isset($cert['common_name']) ? (string) $cert['common_name'] : null,
             subject: isset($cert['subject']) ? (string) $cert['subject'] : null,
-            certBody: isset($cert['cert_body']) ? (string) $cert['cert_body'] : null,
+            certBody: isset($cert['cert_body']) ? (string) $cert['cert_body'] : (isset($cert['pem']) ? (string) $cert['pem'] : null),
             privateKeyBody: isset($cert['private_key_body']) ? (string) $cert['private_key_body'] : null,
             csr: isset($cert['csr']) ? (string) $cert['csr'] : null,
             createdAt: CarbonImmutable::parse($cert['created_at'] ?? 'now'),
             updatedAt: CarbonImmutable::parse($cert['updated_at'] ?? 'now'),
             expiresAt: isset($cert['expires_at']) ? (string) $cert['expires_at'] : null,
+            raw: (array) $cert,
         );
     }
 

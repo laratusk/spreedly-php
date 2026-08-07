@@ -7,11 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — breaking
+
+Correcting the endpoints below changed what their arguments mean, so every call site needs review:
+
+| Method | Before | After |
+| --- | --- | --- |
+| `paymentMethods->store()` | payment method token | **gateway token**, with `payment_method_token` in the params |
+| `transactions->referencePurchase()` | gateway token | **the referenced transaction's token** |
+| `claim->create()` | params only | **transaction token** first |
+| `scaAuthentication->authenticate()` | params only | **SCA provider key** first |
+| `merchantProfiles->retrieve{Sca,Protection}Provider()` | merchant profile token | **the provider's own token** |
+| `certificates->generate()` | certificate token | **params** (`algorithm`, `cn`, …) |
+| `environments->regenerateSigningSecret()` | no argument | **environment key** |
+| `Transaction::$apiUrls` | `?string` | `array` |
+| `TransporterInterface::delete()` | `(string, array)` | `(string, array, array)` — custom implementations must add the third parameter |
+
 ### Added
 - **Asynchronous transaction fields on `Transaction`** — `checkoutUrl`, `checkoutForm`, `redirectUrl`, `callbackUrl`, `setupResponse`, `redirectResponse` and `callbackResponse`. These are what a `pending` 3DS2 or offsite transaction carries, so the 3DS2 flow could not be driven from the typed DTO before: the SDK parsed the response and dropped every field describing where to send the cardholder
 - **`Transaction::requiresCardholderAction()`** — true while the transaction is `pending` and has a checkout URL or form to hand the cardholder
 - **`raw` on `Transaction` and `PaymentMethod`** — the payload each DTO was built from, so fields the SDK does not model yet (`third_party_token`, network-tokenisation detail, gateway-specific extras) remain reachable instead of being lost in parsing
 - **`TransactionState::Processing` and `TransactionState::GatewaySetupFailed`** — both documented transaction states that the enum could not represent
+- **Signed callback verification** — `Transaction::fromCallbackPayload()` parses the batch of transactions Spreedly POSTs to a `callback_url`, and `Transaction::verifySignature()` recomputes the HMAC over the signed fields in constant time. The `signed` block was previously dropped, so there was no way to tell a real callback from a forged one
+- **`raw` on `Certificate` and `ProtectionEvent`** — same escape hatch as `Transaction` and `PaymentMethod`, reaching `public_key_hash` on a generated certificate and the fraud-check detail on a protection event
+- **Documented list filters that the SDK never sent** — `count` on transactions, payment methods, events, payment method events, gateways, environments, merchant profiles, sub merchants, card refresher inquiries and protection events; `state` on transactions, payment methods, gateway transactions and protection events; `event_type` and `include_transactions` on events; `metadata` on payment methods; `order` on certificates, environments, merchant profiles, sub merchants, card refresher inquiries and protection events
+- **`PaymentMethodResource::deleteMetadata()` now takes the keys to remove**, and `TransporterInterface::delete()` accepts a request body, which the endpoint requires
+- **`PaymentMethodResource::retain()` accepts `provisionNetworkToken`**
+- **Transaction and payment method type enum cases** — `Authorization`, `Verification`, `OffsitePurchase`, `OffsiteAuthorization`, `ExportPaymentMethods`, `ReplacePaymentMethod`, `ContactCardHolder`, `NoUpdate`, `Inquiry`, `Sca::Authentication`, and `PaymentMethodType::Sprel`
+
+### Fixed
+- **Ten endpoints were addressed at paths the API does not serve** and would have failed against Spreedly. Verified against the official OpenAPI description:
+  - Composer: `composer/{authorize,purchase,verify}` → `transactions/{authorize,purchase,verify}`
+  - SCA authentication: `sca_authentication/authenticate` → `sca/providers/{sca_provider_key}/authenticate`, which now takes the provider key
+  - SCA and protection providers: `merchant_profiles/{token}/{sca,protection}_provider` → `sca/providers` and `protection/providers`, created with `merchant_profile_key` in the body and retrieved by the provider's own token
+  - Protection events: `protection_events` → `protection/events`
+  - Claims: `claim` → `protection/{transaction_token}/claims`, which now takes the transaction token
+  - Network tokenization: `payment_methods/{token}/network_tokenization_{metadata,status}` → `network_tokenization/{card_metadata,token_status}?payment_method_token=`
+  - Store at gateway: `payment_methods/{token}/store` → `gateways/{gateway_token}/store`, which now takes the gateway token
+  - Reference purchase: it posted a fresh gateway purchase, and now posts `transactions/{transaction_token}/purchase` against the referenced transaction
+  - Certificate generation: `certificates/{token}/generate` → `certificates/generate`, which takes the algorithm and subject rather than a token
+  - Signing secret: `environments/regenerate_signing_secret` → `environments/{environment_key}/regenerate_signing_secret`
+  - Card refresher listing: `card_refresher/inquiry` → `card_refresher/inquiries`, and creating one now uses the `card_refresher_inquiry` request envelope
+- **`Transaction::$apiUrls` is an array**. Spreedly returns `api_urls` as a hash, so casting it to a string emitted an "Array to string conversion" warning and stored the literal `"Array"`
 
 ## [1.4.0] - 2026-08-05
 

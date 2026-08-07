@@ -34,13 +34,20 @@ final readonly class MerchantProfileResource
     /**
      * List all merchant profiles.
      *
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
      * @return PaginatedCollection<MerchantProfile>
      */
-    public function list(?string $sinceToken = null): PaginatedCollection
+    public function list(?string $sinceToken = null, ?string $order = null, ?int $count = null): PaginatedCollection
     {
         $query = [];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($order !== null) {
+            $query['order'] = $order;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('merchant_profiles.json', $query);
@@ -50,13 +57,13 @@ final readonly class MerchantProfileResource
         );
 
         $lastToken = $profiles === [] ? null : end($profiles)->token;
-        $hasMore = count($profiles) >= 20;
+        $hasMore = count($profiles) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $profiles,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $count),
         );
     }
 
@@ -83,44 +90,46 @@ final readonly class MerchantProfileResource
     }
 
     /**
-     * Create a protection provider for a merchant profile.
+     * Create a protection provider on a merchant profile.
+     * At least one card type object ('visa', 'mastercard', 'amex', ...) must be given.
      *
-     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $params  Must include 'type' ('spreedly' or 'test')
      * @return array<string, mixed>
      */
-    public function createProtectionProvider(string $token, array $params): array
+    public function createProtectionProvider(string $merchantProfileToken, array $params): array
     {
-        return $this->transporter->post("merchant_profiles/{$token}/protection_provider.json", $params);
+        return $this->transporter->post('protection/providers.json', ['merchant_profile_key' => $merchantProfileToken] + $params);
     }
 
     /**
-     * Retrieve the protection provider for a merchant profile.
+     * Retrieve a protection provider by its own token.
      *
      * @return array<string, mixed>
      */
-    public function retrieveProtectionProvider(string $token): array
+    public function retrieveProtectionProvider(string $protectionProviderToken): array
     {
-        return $this->transporter->get("merchant_profiles/{$token}/protection_provider.json");
+        return $this->transporter->get("protection/providers/{$protectionProviderToken}.json");
     }
 
     /**
-     * Create an SCA provider for a merchant profile.
+     * Create an SCA provider on a merchant profile.
+     * At least one card type object ('visa', 'mastercard', 'amex', 'discover') must be given.
      *
-     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $params  Must include 'type' ('spreedly')
      * @return array<string, mixed>
      */
-    public function createScaProvider(string $token, array $params): array
+    public function createScaProvider(string $merchantProfileToken, array $params): array
     {
-        return $this->transporter->post("merchant_profiles/{$token}/sca_provider.json", $params);
+        return $this->transporter->post('sca/providers.json', ['merchant_profile_key' => $merchantProfileToken] + $params);
     }
 
     /**
-     * Retrieve the SCA provider for a merchant profile.
+     * Retrieve an SCA provider by its own token.
      *
      * @return array<string, mixed>
      */
-    public function retrieveScaProvider(string $token): array
+    public function retrieveScaProvider(string $scaProviderToken): array
     {
-        return $this->transporter->get("merchant_profiles/{$token}/sca_provider.json");
+        return $this->transporter->get("sca/providers/{$scaProviderToken}.json");
     }
 }

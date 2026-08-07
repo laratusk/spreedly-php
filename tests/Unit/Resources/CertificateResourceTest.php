@@ -76,11 +76,23 @@ test('generate sends POST to generate endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('certificates/Cert123xoVyB/generate.json')
+        ->with('certificates/generate.json', ['certificate' => ['algorithm' => 'ec-prime256v1', 'cn' => 'MyApp ApplePay Production Certificate']])
         ->andReturn($fixture);
 
     $resource = new CertificateResource($transporter);
-    $cert = $resource->generate('Cert123xoVyB');
+    $cert = $resource->generate(['algorithm' => 'ec-prime256v1', 'cn' => 'MyApp ApplePay Production Certificate']);
 
     expect($cert)->toBeInstanceOf(Certificate::class);
+});
+
+test('list forwards the order filter', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('certificates.json', ['order' => 'asc'])
+        ->andReturn(['certificates' => []]);
+
+    $resource = new CertificateResource($transporter);
+
+    expect($resource->list(order: 'asc')->count())->toBe(0);
 });

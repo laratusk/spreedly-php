@@ -71,3 +71,15 @@ test('update sends PUT request to correct endpoint', function (): void {
 
     expect($subMerchant)->toBeInstanceOf(SubMerchant::class);
 });
+
+test('list forwards the order and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('sub_merchants.json', ['order' => 'asc', 'count' => 40])
+        ->andReturn(['sub_merchants' => []]);
+
+    $resource = new SubMerchantResource($transporter);
+
+    expect($resource->list(order: 'asc', count: 40)->count())->toBe(0);
+});
