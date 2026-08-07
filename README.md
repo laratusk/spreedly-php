@@ -868,14 +868,36 @@ composer quality
 
 ### Integration Tests
 
-Integration tests require real Spreedly credentials and run against the test gateway:
+Unit tests mock the transporter, so they can only confirm that the SDK sends the path
+the test already expects. The integration suite calls the real API and proves that
+every endpoint the SDK addresses is one Spreedly actually serves.
+
+It creates a test gateway, a payment method and a transaction first, then exercises
+each endpoint with tokens that genuinely exist — so a `404` can only mean the path is
+wrong, never that a record is missing. A `422` passes: the route was understood and
+the body rejected, which is all the assertion is about.
 
 ```bash
 SPREEDLY_INTEGRATION=true \
 SPREEDLY_ENVIRONMENT_KEY=your_key \
 SPREEDLY_ACCESS_SECRET=your_secret \
-composer test -- --testsuite Integration
+vendor/bin/pest --testsuite Integration
 ```
+
+Without `SPREEDLY_INTEGRATION=true` the suite skips, so CI stays green without
+credentials.
+
+Use a **test/sandbox environment**. The suite creates real records (a gateway, a
+payment method, transactions, a merchant profile, a certificate) and does not clean
+them up.
+
+Nothing destructive runs. Spreedly answers `401` for a route that exists but is out of
+scope for the credentials and `404` for one that does not exist, so endpoints that
+cannot be called safely — regenerating the signing secret would invalidate every
+callback signature already issued — are proven by that distinction instead.
+
+Organization-scoped endpoints (sub merchants, environments) skip with a clear message
+when only environment credentials are supplied.
 
 ## License
 

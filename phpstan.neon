@@ -15,3 +15,8 @@ parameters:
         - '#PHPUnit\\Framework\\TestCase::\$app#'
         - '#PHPUnit\\Framework\\TestCase::artisan\(\)#'
         - '#PHPUnit\\Framework\\TestCase::loadFixture\(\)#'
+        # Same Pest uses() binding, for the Integration suite's helpers on IntegrationTestCase.
+        - '#PHPUnit\\Framework\\TestCase::\$spreedly#'
+        - '#PHPUnit\\Framework\\TestCase::httpStatus\(\)#'
+        - '#PHPUnit\\Framework\\TestCase::assertRouteExists\(\)#'
+        - '#PHPUnit\\Framework\\TestCase::sandboxToken\(\)#'

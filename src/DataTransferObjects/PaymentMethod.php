@@ -60,7 +60,11 @@ final readonly class PaymentMethod
      */
     public static function fromArray(array $data): self
     {
-        $pm = $data['payment_method'] ?? $data;
+        // Creating or recaching a payment method answers with a transaction that carries
+        // the payment method; retrieving one answers with the payment method directly.
+        $pm = $data['payment_method']
+            ?? (is_array($data['transaction'] ?? null) ? $data['transaction']['payment_method'] ?? null : null)
+            ?? $data;
 
         return new self(
             token: (string) ($pm['token'] ?? ''),

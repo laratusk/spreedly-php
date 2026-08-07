@@ -5,19 +5,26 @@ declare(strict_types=1);
 use Carbon\CarbonImmutable;
 use Laratusk\Spreedly\DataTransferObjects\PaymentMethod;
 
-test('can be created from array with payment_method wrapper', function (): void {
+test('can be created from the transaction wrapper that creating one answers with', function (): void {
     $data = $this->loadFixture('payment_methods/create.json');
 
     $pm = PaymentMethod::fromArray($data);
 
     expect($pm->token)->toBe('56wyNnSmuA6en32YnlLFoJNFLSI');
-    expect($pm->storageState)->toBe('cached');
+    expect($pm->storageState)->toBe('retained');
     expect($pm->test)->toBeTrue();
-    expect($pm->lastFourDigits)->toBe('4242');
+    expect($pm->lastFourDigits)->toBe('1111');
     expect($pm->firstSixDigits)->toBe('411111');
     expect($pm->cardType)->toBe('visa');
     expect($pm->paymentMethodType)->toBe('credit_card');
     expect($pm->createdAt)->toBeInstanceOf(CarbonImmutable::class);
+});
+
+test('can be created from the payment_method wrapper that retrieving one answers with', function (): void {
+    $pm = PaymentMethod::fromArray($this->loadFixture('payment_methods/show.json'));
+
+    expect($pm->token)->toBe('56wyNnSmuA6en32YnlLFoJNFLSI');
+    expect($pm->storageState)->toBe('retained');
 });
 
 test('can be created from array without wrapper', function (): void {
@@ -68,7 +75,7 @@ test('to array contains required fields', function (): void {
     $array = $pm->toArray();
 
     expect($array['token'])->toBe('56wyNnSmuA6en32YnlLFoJNFLSI');
-    expect($array['storage_state'])->toBe('cached');
+    expect($array['storage_state'])->toBe('retained');
     expect($array['payment_method_type'])->toBe('credit_card');
     expect($array['created_at'])->toBeString();
 });

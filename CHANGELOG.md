@@ -24,6 +24,7 @@ Correcting the endpoints below changed what their arguments mean, so every call 
 | `TransporterInterface::delete()` | `(string, array)` | `(string, array, array)` — custom implementations must add the third parameter |
 
 ### Added
+- **An integration suite that calls the real API** (`vendor/bin/pest --testsuite Integration`). Mocked tests can only confirm that the SDK sends the path the test already expects, which is how the wrong paths survived. The suite creates a gateway, payment method and transaction first, then exercises each endpoint with tokens that genuinely exist, so a 404 can only mean the path is wrong. It skips without `SPREEDLY_INTEGRATION=true`, so CI is unaffected
 - **Asynchronous transaction fields on `Transaction`** — `checkoutUrl`, `checkoutForm`, `redirectUrl`, `callbackUrl`, `setupResponse`, `redirectResponse` and `callbackResponse`. These are what a `pending` 3DS2 or offsite transaction carries, so the 3DS2 flow could not be driven from the typed DTO before: the SDK parsed the response and dropped every field describing where to send the cardholder
 - **`Transaction::requiresCardholderAction()`** — true while the transaction is `pending` and has a checkout URL or form to hand the cardholder
 - **`raw` on `Transaction` and `PaymentMethod`** — the payload each DTO was built from, so fields the SDK does not model yet (`third_party_token`, network-tokenisation detail, gateway-specific extras) remain reachable instead of being lost in parsing
@@ -48,6 +49,7 @@ Correcting the endpoints below changed what their arguments mean, so every call 
   - Certificate generation: `certificates/{token}/generate` → `certificates/generate`, which takes the algorithm and subject rather than a token
   - Signing secret: `environments/regenerate_signing_secret` → `environments/{environment_key}/regenerate_signing_secret`
   - Card refresher listing: `card_refresher/inquiry` → `card_refresher/inquiries`, and creating one now uses the `card_refresher_inquiry` request envelope
+- **`paymentMethods->create()` returned an empty payment method.** Creating one answers with a `transaction` envelope carrying the payment method, not a bare `payment_method`, so `PaymentMethod::fromArray()` found nothing and every field came back empty — including the token. The unit fixture had been written by hand with the wrong envelope, so the mocked test agreed with the bug. Found by the new integration suite, and the fixture is now a captured real response
 - **`Transaction::$apiUrls` is an array**. Spreedly returns `api_urls` as a hash, so casting it to a string emitted an "Array to string conversion" warning and stored the literal `"Array"`
 
 ## [1.4.0] - 2026-08-05

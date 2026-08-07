@@ -23,7 +23,7 @@ test('create sends POST request with payment method wrapper', function (): void 
 
     expect($pm)->toBeInstanceOf(PaymentMethod::class);
     expect($pm->token)->toBe('56wyNnSmuA6en32YnlLFoJNFLSI');
-    expect($pm->lastFourDigits)->toBe('4242');
+    expect($pm->lastFourDigits)->toBe('1111');
     expect($pm->cardType)->toBe('visa');
 });
 
