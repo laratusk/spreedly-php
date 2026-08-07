@@ -14,6 +14,7 @@ final readonly class PaymentMethod
 {
     /**
      * @param  array<string, mixed>  $errors
+     * @param  array<string, mixed>  $raw
      */
     public function __construct(
         public string $token,
@@ -48,6 +49,10 @@ final readonly class PaymentMethod
         public array $errors,
         public ?string $fingerprint,
         public ?string $callbackUrl,
+        // Payload as received. Spreedly returns fields this class does not model
+        // yet — third_party_token, network tokenisation detail, gateway-specific
+        // extras — and they would otherwise be lost on the way through.
+        public array $raw = [],
     ) {}
 
     /**
@@ -90,6 +95,7 @@ final readonly class PaymentMethod
             errors: (array) ($pm['errors'] ?? []),
             fingerprint: isset($pm['fingerprint']) ? (string) $pm['fingerprint'] : null,
             callbackUrl: isset($pm['callback_url']) ? (string) $pm['callback_url'] : null,
+            raw: (array) $pm,
         );
     }
 

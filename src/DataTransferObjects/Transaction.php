@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laratusk\Spreedly\DataTransferObjects;
 
 use Carbon\CarbonImmutable;
+use Laratusk\Spreedly\Enums\TransactionState;
 
 /**
  * Represents a Spreedly transaction.
@@ -16,6 +17,10 @@ final readonly class Transaction
      * @param  array<string, mixed>  $response
      * @param  array<string, mixed>  $gatewaySpecificFields
      * @param  array<string, mixed>  $gatewaySpecificResponseFields
+     * @param  array<string, mixed>  $setupResponse
+     * @param  array<string, mixed>  $redirectResponse
+     * @param  array<string, mixed>  $callbackResponse
+     * @param  array<string, mixed>  $raw
      */
     public function __construct(
         public string $token,
@@ -50,6 +55,21 @@ final readonly class Transaction
         public bool $test,
         public ?string $referenceToken,
         public ?string $apiUrls,
+        // Asynchronous flow (3DS2 and offsite payments). A transaction in the
+        // `pending` state carries these so the caller can hand the cardholder
+        // over to the issuer and be told where they land afterwards.
+        public ?string $checkoutUrl = null,
+        public ?string $checkoutForm = null,
+        public ?string $redirectUrl = null,
+        public ?string $callbackUrl = null,
+        // Up to three sub-responses accompany an asynchronous transaction; they
+        // hold error detail the top-level message does not.
+        public array $setupResponse = [],
+        public array $redirectResponse = [],
+        public array $callbackResponse = [],
+        // Payload as received, so a field this class does not model yet is
+        // still reachable instead of being dropped on the floor.
+        public array $raw = [],
     ) {}
 
     /**
@@ -97,6 +117,14 @@ final readonly class Transaction
             test: (bool) ($tx['test'] ?? false),
             referenceToken: isset($tx['reference_token']) ? (string) $tx['reference_token'] : null,
             apiUrls: isset($tx['api_urls']) ? (string) $tx['api_urls'] : null,
+            checkoutUrl: isset($tx['checkout_url']) ? (string) $tx['checkout_url'] : null,
+            checkoutForm: isset($tx['checkout_form']) ? (string) $tx['checkout_form'] : null,
+            redirectUrl: isset($tx['redirect_url']) ? (string) $tx['redirect_url'] : null,
+            callbackUrl: isset($tx['callback_url']) ? (string) $tx['callback_url'] : null,
+            setupResponse: (array) ($tx['setup_response'] ?? []),
+            redirectResponse: (array) ($tx['redirect_response'] ?? []),
+            callbackResponse: (array) ($tx['callback_response'] ?? []),
+            raw: (array) $tx,
         );
     }
 
@@ -130,6 +158,23 @@ final readonly class Transaction
             'gateway_specific_response_fields' => $this->gatewaySpecificResponseFields,
             'test' => $this->test,
             'reference_token' => $this->referenceToken,
+            'checkout_url' => $this->checkoutUrl,
+            'checkout_form' => $this->checkoutForm,
+            'redirect_url' => $this->redirectUrl,
+            'callback_url' => $this->callbackUrl,
+            'setup_response' => $this->setupResponse,
+            'redirect_response' => $this->redirectResponse,
+            'callback_response' => $this->callbackResponse,
         ];
+    }
+
+    /**
+     * True when the cardholder still has to be sent somewhere — a 3DS2 challenge
+     * or an offsite payment page — before this transaction can settle.
+     */
+    public function requiresCardholderAction(): bool
+    {
+        return $this->state === TransactionState::Pending->value
+            && ($this->checkoutUrl !== null || $this->checkoutForm !== null);
     }
 }

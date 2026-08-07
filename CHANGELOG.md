@@ -5,6 +5,14 @@ All notable changes to `laratusk/spreedly` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Asynchronous transaction fields on `Transaction`** — `checkoutUrl`, `checkoutForm`, `redirectUrl`, `callbackUrl`, `setupResponse`, `redirectResponse` and `callbackResponse`. These are what a `pending` 3DS2 or offsite transaction carries, so the 3DS2 flow could not be driven from the typed DTO before: the SDK parsed the response and dropped every field describing where to send the cardholder
+- **`Transaction::requiresCardholderAction()`** — true while the transaction is `pending` and has a checkout URL or form to hand the cardholder
+- **`raw` on `Transaction` and `PaymentMethod`** — the payload each DTO was built from, so fields the SDK does not model yet (`third_party_token`, network-tokenisation detail, gateway-specific extras) remain reachable instead of being lost in parsing
+- **`TransactionState::Processing` and `TransactionState::GatewaySetupFailed`** — both documented transaction states that the enum could not represent
+
 ## [1.4.0] - 2026-08-05
 
 ### Added

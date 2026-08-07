@@ -400,6 +400,59 @@ $spreedly->composer->verify([...]);
 $spreedly->scaAuthentication->authenticate([...]);
 ```
 
+### Asynchronous transactions (3DS2 and offsite)
+
+> **Docs:** [Gateway Specific 3DS2 Guide](https://developer.spreedly.com/docs/gateway-specific-3ds2-guide)
+
+A transaction that needs the cardholder to authenticate comes back in the `pending`
+state carrying somewhere to send them:
+
+```php
+$tx = $spreedly->transactions->purchase($gatewayToken, [
+    'payment_method_token' => $token,
+    'amount'               => 3004,
+    'currency_code'        => 'EUR',
+    'attempt_3dsecure'     => true,
+    'three_ds_version'     => '2',
+    'redirect_url'         => 'https://merchant.example/checkout/return',
+    'callback_url'         => 'https://merchant.example/spreedly/callback',
+    'browser_info'         => $browserInfo,
+]);
+
+if ($tx->requiresCardholderAction()) {
+    // Hand the cardholder over, then complete the transaction afterwards.
+    return redirect($tx->checkoutUrl);
+}
+```
+
+| Property | Description |
+| --- | --- |
+| `checkoutUrl` | Issuer page to send the cardholder to |
+| `checkoutForm` | Pre-built form to post instead of redirecting |
+| `redirectUrl` | Where the cardholder lands afterwards |
+| `callbackUrl` | Where Spreedly POSTs state changes |
+| `setupResponse` | Result of setting the transaction up on the gateway |
+| `redirectResponse` | Result of the cardholder returning |
+| `callbackResponse` | Result delivered out of band |
+
+Finish the transaction with `$spreedly->transactions->complete($tx->token)`.
+
+The three sub-responses often hold error detail that the top-level `message` does
+not, which is what makes a failed authentication diagnosable.
+
+### Raw payloads
+
+Every `Transaction` and `PaymentMethod` keeps the payload it was built from, so a
+field the SDK does not model yet is still reachable:
+
+```php
+$tx->raw['some_new_field'];
+$tx->paymentMethod->raw['third_party_token'];
+```
+
+Typed properties stay the supported surface; `raw` is the escape hatch for
+gateway-specific extras and for fields Spreedly adds between SDK releases.
+
 ### Sub Merchants
 
 > **Docs:** [Sub Merchants API](https://developer.spreedly.com/reference/sub-merchants)
