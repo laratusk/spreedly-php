@@ -6,8 +6,8 @@ namespace Laratusk\Spreedly\Resources;
 
 use Laratusk\Spreedly\Contracts\TransporterInterface;
 use Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection;
-use Laratusk\Spreedly\DataTransferObjects\Event;
 use Laratusk\Spreedly\DataTransferObjects\PaymentMethod;
+use Laratusk\Spreedly\DataTransferObjects\PaymentMethodEvent;
 use Laratusk\Spreedly\DataTransferObjects\Transaction;
 
 /**
@@ -46,13 +46,25 @@ final readonly class PaymentMethodResource
     /**
      * List all payment methods.
      *
+     * @param  string|null  $state  One of retained, redacted, cached or used
+     * @param  string|null  $metadata  A `key:value` pair to filter on
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
      * @return PaginatedCollection<PaymentMethod>
      */
-    public function list(?string $sinceToken = null, string $order = 'desc'): PaginatedCollection
+    public function list(?string $sinceToken = null, string $order = 'desc', ?string $state = null, ?string $metadata = null, ?int $count = null): PaginatedCollection
     {
         $query = ['order' => $order];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($state !== null) {
+            $query['state'] = $state;
+        }
+        if ($metadata !== null) {
+            $query['metadata'] = $metadata;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('payment_methods.json', $query);
@@ -62,13 +74,13 @@ final readonly class PaymentMethodResource
         );
 
         $lastToken = $paymentMethods === [] ? null : end($paymentMethods)->token;
-        $hasMore = count($paymentMethods) >= 20;
+        $hasMore = count($paymentMethods) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $paymentMethods,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $state, $metadata, $count),
         );
     }
 
@@ -86,10 +98,14 @@ final readonly class PaymentMethodResource
 
     /**
      * Retain a payment method (prevents automatic removal).
+     *
+     * @param  bool|null  $provisionNetworkToken  Also attempt to provision a network token
      */
-    public function retain(string $token): Transaction
+    public function retain(string $token, ?bool $provisionNetworkToken = null): Transaction
     {
-        $response = $this->transporter->put("payment_methods/{$token}/retain.json");
+        $payload = $provisionNetworkToken === null ? [] : ['provision_network_token' => $provisionNetworkToken];
+
+        $response = $this->transporter->put("payment_methods/{$token}/retain.json", $payload);
 
         return Transaction::fromArray($response);
     }
@@ -117,13 +133,15 @@ final readonly class PaymentMethodResource
     }
 
     /**
-     * Store a payment method at a gateway.
+     * Copy a payment method into a gateway's own vault, producing a separate
+     * third party token payment method locked to that gateway.
      *
-     * @param  array<string, mixed>  $params
+     * @param  string  $gatewayToken  The gateway to store at, not a payment method token
+     * @param  array<string, mixed>  $params  Must include 'payment_method_token'
      */
-    public function store(string $token, array $params): Transaction
+    public function store(string $gatewayToken, array $params): Transaction
     {
-        $response = $this->transporter->post("payment_methods/{$token}/store.json", $params);
+        $response = $this->transporter->post("gateways/{$gatewayToken}/store.json", ['transaction' => $params]);
 
         return Transaction::fromArray($response);
     }
@@ -158,101 +176,101 @@ final readonly class PaymentMethodResource
     }
 
     /**
-     * Delete metadata for a payment method.
+     * Remove key value pairs from a payment method's metadata.
      *
+     * @param  list<string>  $keys  The metadata keys to remove
      * @return array<string, mixed>
      */
-    public function deleteMetadata(string $token): array
+    public function deleteMetadata(string $token, array $keys = []): array
     {
-        return $this->transporter->delete("payment_methods/{$token}/metadata.json");
+        return $this->transporter->delete("payment_methods/{$token}/metadata.json", [], $keys === [] ? [] : ['keys' => $keys]);
     }
 
     /**
-     * Get network tokenization metadata for a payment method.
+     * Get the network token card metadata (art, labels, issuer contact details) for a
+     * payment method that was network tokenized.
      *
+     * @param  string  $token  The token of the payment method that was originally tokenized
      * @return array<string, mixed>
      */
     public function networkTokenizationMetadata(string $token): array
     {
-        return $this->transporter->get("payment_methods/{$token}/network_tokenization_metadata.json");
+        return $this->transporter->get('network_tokenization/card_metadata.json', ['payment_method_token' => $token]);
     }
 
     /**
-     * Get network tokenization status for a payment method.
+     * Get the lifecycle status of the network token provisioned for a payment method.
      *
+     * @param  string  $token  The token of the payment method that was originally tokenized
      * @return array<string, mixed>
      */
     public function networkTokenizationStatus(string $token): array
     {
-        return $this->transporter->get("payment_methods/{$token}/network_tokenization_status.json");
+        return $this->transporter->get('network_tokenization/token_status.json', ['payment_method_token' => $token]);
     }
 
     /**
      * List all payment method events.
      *
-     * @return PaginatedCollection<Event>
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
+     * @return PaginatedCollection<PaymentMethodEvent>
      */
-    public function listEvents(?string $sinceToken = null): PaginatedCollection
+    public function listEvents(?string $sinceToken = null, ?string $order = null, ?string $eventType = null, ?int $count = null, ?bool $includeTransactions = null): PaginatedCollection
     {
-        $query = [];
-        if ($sinceToken !== null) {
-            $query['since_token'] = $sinceToken;
-        }
+        $query = $this->eventQuery($sinceToken, $order, $eventType, $count, $includeTransactions);
 
         $response = $this->transporter->get('payment_methods/events.json', $query);
         $events = array_map(
-            static fn (array $item): Event => Event::fromArray(['event' => $item]),
-            (array) ($response['events'] ?? []),
+            static fn (array $item): PaymentMethodEvent => PaymentMethodEvent::fromArray(['payment_method_event' => $item]),
+            (array) ($response['payment_method_events'] ?? []),
         );
 
         $lastToken = $events === [] ? null : end($events)->token;
-        $hasMore = count($events) >= 20;
+        $hasMore = count($events) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->listEvents($since),
+            fetcher: fn (string $since): PaginatedCollection => $this->listEvents($since, $order, $eventType, $count, $includeTransactions),
         );
     }
 
     /**
      * List all events for a specific payment method.
      *
-     * @return PaginatedCollection<Event>
+     * @param  int|null  $count  Page size. Defaults to 20, maximum 100.
+     * @return PaginatedCollection<PaymentMethodEvent>
      */
-    public function listEventsForPaymentMethod(string $token, ?string $sinceToken = null): PaginatedCollection
+    public function listEventsForPaymentMethod(string $token, ?string $sinceToken = null, ?string $order = null, ?string $eventType = null, ?int $count = null, ?bool $includeTransactions = null): PaginatedCollection
     {
-        $query = [];
-        if ($sinceToken !== null) {
-            $query['since_token'] = $sinceToken;
-        }
+        $query = $this->eventQuery($sinceToken, $order, $eventType, $count, $includeTransactions);
 
         $response = $this->transporter->get("payment_methods/{$token}/events.json", $query);
         $events = array_map(
-            static fn (array $item): Event => Event::fromArray(['event' => $item]),
-            (array) ($response['events'] ?? []),
+            static fn (array $item): PaymentMethodEvent => PaymentMethodEvent::fromArray(['payment_method_event' => $item]),
+            (array) ($response['payment_method_events'] ?? []),
         );
 
         $lastToken = $events === [] ? null : end($events)->token;
-        $hasMore = count($events) >= 20;
+        $hasMore = count($events) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->listEventsForPaymentMethod($token, $since),
+            fetcher: fn (string $since): PaginatedCollection => $this->listEventsForPaymentMethod($token, $since, $order, $eventType, $count, $includeTransactions),
         );
     }
 
     /**
      * Retrieve a specific payment method event by token.
      */
-    public function retrieveEvent(string $eventToken): Event
+    public function retrieveEvent(string $eventToken): PaymentMethodEvent
     {
         $response = $this->transporter->get("payment_methods/events/{$eventToken}.json");
 
-        return Event::fromArray($response);
+        return PaymentMethodEvent::fromArray($response);
     }
 
     /**
@@ -265,5 +283,30 @@ final readonly class PaymentMethodResource
         $response = $this->transporter->put("payment_methods/{$token}/update_gratis.json", ['payment_method' => $params]);
 
         return PaymentMethod::fromArray($response);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function eventQuery(?string $sinceToken, ?string $order, ?string $eventType, ?int $count, ?bool $includeTransactions): array
+    {
+        $query = [];
+        if ($sinceToken !== null) {
+            $query['since_token'] = $sinceToken;
+        }
+        if ($order !== null) {
+            $query['order'] = $order;
+        }
+        if ($eventType !== null) {
+            $query['event_type'] = $eventType;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
+        }
+        if ($includeTransactions !== null) {
+            $query['include_transactions'] = $includeTransactions;
+        }
+
+        return $query;
     }
 }

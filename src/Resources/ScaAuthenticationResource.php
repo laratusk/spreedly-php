@@ -22,11 +22,16 @@ final readonly class ScaAuthenticationResource
     /**
      * Authenticate a payment method using SCA.
      *
-     * @param  array<string, mixed>  $params
+     * The 3DS specific fields of the response (`three_ds_version`, `ecommerce_indicator`,
+     * `authentication_value` and friends) are reachable through the returned transaction's
+     * `raw` payload.
+     *
+     * @param  string  $scaProviderKey  The token returned when the SCA provider was created
+     * @param  array<string, mixed>  $params  Must include 'payment_method_token'
      */
-    public function authenticate(array $params): Transaction
+    public function authenticate(string $scaProviderKey, array $params): Transaction
     {
-        $response = $this->transporter->post('sca_authentication/authenticate.json', ['transaction' => $params]);
+        $response = $this->transporter->post("sca/providers/{$scaProviderKey}/authenticate.json", ['transaction' => $params]);
 
         return Transaction::fromArray($response);
     }

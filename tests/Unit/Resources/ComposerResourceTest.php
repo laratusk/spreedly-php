@@ -12,7 +12,7 @@ test('authorize sends POST to composer authorize endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('composer/authorize.json', ['transaction' => ['payment_method_token' => 'pm_token', 'amount' => 1000, 'currency_code' => 'USD']])
+        ->with('transactions/authorize.json', ['transaction' => ['payment_method_token' => 'pm_token', 'amount' => 1000, 'currency_code' => 'USD']])
         ->andReturn($fixture);
 
     $resource = new ComposerResource($transporter);
@@ -28,7 +28,7 @@ test('purchase sends POST to composer purchase endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('composer/purchase.json', ['transaction' => ['payment_method_token' => 'pm_token', 'amount' => 1000, 'currency_code' => 'USD']])
+        ->with('transactions/purchase.json', ['transaction' => ['payment_method_token' => 'pm_token', 'amount' => 1000, 'currency_code' => 'USD']])
         ->andReturn($fixture);
 
     $resource = new ComposerResource($transporter);
@@ -44,7 +44,7 @@ test('verify sends POST to composer verify endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('composer/verify.json', ['transaction' => ['payment_method_token' => 'pm_token']])
+        ->with('transactions/verify.json', ['transaction' => ['payment_method_token' => 'pm_token']])
         ->andReturn($fixture);
 
     $resource = new ComposerResource($transporter);

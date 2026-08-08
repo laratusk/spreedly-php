@@ -42,9 +42,10 @@ interface TransporterInterface
      * Send a DELETE request to the given endpoint.
      *
      * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    public function delete(string $endpoint, array $query = []): array;
+    public function delete(string $endpoint, array $query = [], array $payload = []): array;
 
     /**
      * Send a GET request and return the raw response body as a string.

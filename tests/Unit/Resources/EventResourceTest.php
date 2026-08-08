@@ -20,9 +20,9 @@ test('retrieve sends GET request to correct endpoint', function (): void {
     $event = $resource->retrieve('Ev1gI6fHgIuUkVnmUGPA3xoVyB');
 
     expect($event)->toBeInstanceOf(Event::class);
-    expect($event->token)->toBe('Ev1gI6fHgIuUkVnmUGPA3xoVyB');
-    expect($event->eventType)->toBe('purchase');
-    expect($event->state)->toBe('delivered');
+    expect($event->id)->toBe('40790047-6ba0-41ea-88c8-42fe224e617b');
+    expect($event->eventType)->toBe('UpdatePaymentMethodReceiver');
+    expect($event->objectKey)->toBe('5QQ5532YER89MS729YG1R15DV3');
 });
 
 test('list returns paginated collection', function (): void {
@@ -53,4 +53,16 @@ test('list passes since_token for pagination', function (): void {
     $collection = $resource->list('some_token');
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
+});
+
+test('list forwards the event_type and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('events.json', ['order' => 'desc', 'event_type' => 'card_updated', 'count' => 100])
+        ->andReturn(['events' => []]);
+
+    $resource = new EventResource($transporter);
+
+    expect($resource->list(eventType: 'card_updated', count: 100)->count())->toBe(0);
 });

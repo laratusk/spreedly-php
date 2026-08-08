@@ -10,44 +10,41 @@ test('can be created from array with event wrapper', function (): void {
 
     $event = Event::fromArray($data);
 
-    expect($event->token)->toBe('Ev1gI6fHgIuUkVnmUGPA3xoVyB');
-    expect($event->eventType)->toBe('purchase');
-    expect($event->state)->toBe('delivered');
+    expect($event->id)->toBe('40790047-6ba0-41ea-88c8-42fe224e617b');
+    expect($event->eventType)->toBe('UpdatePaymentMethodReceiver');
+    expect($event->objectType)->toBe('PaymentMethodReceiver');
+    expect($event->objectKey)->toBe('5QQ5532YER89MS729YG1R15DV3');
+    expect($event->requestId)->toBeNull();
     expect($event->createdAt)->toBeInstanceOf(CarbonImmutable::class);
-    expect($event->updatedAt)->toBeInstanceOf(CarbonImmutable::class);
 });
 
 test('can be created from array without event wrapper', function (): void {
-    $data = [
-        'token' => 'ev_abc123',
-        'event_type' => 'authorize',
-        'state' => 'pending',
-        'data' => [],
+    $event = Event::fromArray([
+        'id' => 'e738dcd7-7a99-4192-ac05-73ba7263377d',
+        'request_id' => 'a1b2c3d4',
+        'event_type' => 'RedactPaymentMethodReceiver',
+        'object_type' => 'PaymentMethodReceiver',
+        'object_key' => 'PM123',
         'created_at' => '2024-01-15T10:00:00Z',
-        'updated_at' => '2024-01-15T10:00:00Z',
-    ];
+    ]);
 
-    $event = Event::fromArray($data);
-
-    expect($event->token)->toBe('ev_abc123');
-    expect($event->eventType)->toBe('authorize');
-    expect($event->data)->toBeArray();
+    expect($event->id)->toBe('e738dcd7-7a99-4192-ac05-73ba7263377d');
+    expect($event->requestId)->toBe('a1b2c3d4');
+    expect($event->eventType)->toBe('RedactPaymentMethodReceiver');
 });
 
-test('data contains event payload', function (): void {
-    $data = $this->loadFixture('events/show.json');
-    $event = Event::fromArray($data);
+test('raw keeps the payload the event was built from', function (): void {
+    $event = Event::fromArray($this->loadFixture('events/show.json'));
 
-    expect($event->data)->toBeArray();
-    expect($event->data['transaction_token'])->toBe('tx_123');
+    expect($event->raw)->toHaveKey('object_key');
+    expect($event->raw['object_key'])->toBe('5QQ5532YER89MS729YG1R15DV3');
 });
 
 test('to array round trip', function (): void {
-    $data = $this->loadFixture('events/show.json');
-    $event = Event::fromArray($data);
-    $array = $event->toArray();
+    $array = Event::fromArray($this->loadFixture('events/show.json'))->toArray();
 
-    expect($array['token'])->toBe('Ev1gI6fHgIuUkVnmUGPA3xoVyB');
-    expect($array['event_type'])->toBe('purchase');
+    expect($array['id'])->toBe('40790047-6ba0-41ea-88c8-42fe224e617b');
+    expect($array['event_type'])->toBe('UpdatePaymentMethodReceiver');
+    expect($array['object_type'])->toBe('PaymentMethodReceiver');
     expect($array['created_at'])->toBeString();
 });

@@ -11,11 +11,11 @@ test('create sends POST request to correct endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('claim.json', ['payment_method_token' => 'PM1234567890abcdefgh'])
+        ->with('protection/TX1234567890abcdefgh/claims.json', ['claim' => ['reason_type' => 'FRAUD', 'amount' => 1000]])
         ->andReturn($fixture);
 
     $resource = new ClaimResource($transporter);
-    $result = $resource->create(['payment_method_token' => 'PM1234567890abcdefgh']);
+    $result = $resource->create('TX1234567890abcdefgh', ['reason_type' => 'FRAUD', 'amount' => 1000]);
 
     expect($result)->toBeArray();
     expect($result['claim']['token'])->toBe('CLM123abc456DEF789ghi');

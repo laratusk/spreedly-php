@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laratusk\Spreedly\DataTransferObjects;
 
 use Carbon\CarbonImmutable;
+use Laratusk\Spreedly\Enums\TransactionState;
 
 /**
  * Represents a Spreedly transaction.
@@ -16,6 +17,12 @@ final readonly class Transaction
      * @param  array<string, mixed>  $response
      * @param  array<string, mixed>  $gatewaySpecificFields
      * @param  array<string, mixed>  $gatewaySpecificResponseFields
+     * @param  array<string, mixed>  $apiUrls
+     * @param  array<string, mixed>  $setupResponse
+     * @param  array<string, mixed>  $redirectResponse
+     * @param  array<string, mixed>  $callbackResponse
+     * @param  array<string, mixed>  $signed
+     * @param  array<string, mixed>  $raw
      */
     public function __construct(
         public string $token,
@@ -49,7 +56,26 @@ final readonly class Transaction
         public ?string $merchant,
         public bool $test,
         public ?string $referenceToken,
-        public ?string $apiUrls,
+        // Spreedly returns this as a hash, e.g. {"callback_conversations": "..."}.
+        public array $apiUrls,
+        // Asynchronous flow (3DS2 and offsite payments). A transaction in the
+        // `pending` state carries these so the caller can hand the cardholder
+        // over to the issuer and be told where they land afterwards.
+        public ?string $checkoutUrl = null,
+        public ?string $checkoutForm = null,
+        public ?string $redirectUrl = null,
+        public ?string $callbackUrl = null,
+        // Up to three sub-responses accompany an asynchronous transaction; they
+        // hold error detail the top-level message does not.
+        public array $setupResponse = [],
+        public array $redirectResponse = [],
+        public array $callbackResponse = [],
+        // Present on transactions delivered over an insecure channel — offsite and 3DS
+        // callbacks — carrying the signature, the signed field names and the algorithm.
+        public array $signed = [],
+        // Payload as received, so a field this class does not model yet is
+        // still reachable instead of being dropped on the floor.
+        public array $raw = [],
     ) {}
 
     /**
@@ -96,8 +122,38 @@ final readonly class Transaction
             merchant: isset($tx['merchant']) ? (string) $tx['merchant'] : null,
             test: (bool) ($tx['test'] ?? false),
             referenceToken: isset($tx['reference_token']) ? (string) $tx['reference_token'] : null,
-            apiUrls: isset($tx['api_urls']) ? (string) $tx['api_urls'] : null,
+            apiUrls: (array) ($tx['api_urls'] ?? []),
+            checkoutUrl: isset($tx['checkout_url']) ? (string) $tx['checkout_url'] : null,
+            checkoutForm: isset($tx['checkout_form']) ? (string) $tx['checkout_form'] : null,
+            redirectUrl: isset($tx['redirect_url']) ? (string) $tx['redirect_url'] : null,
+            callbackUrl: isset($tx['callback_url']) ? (string) $tx['callback_url'] : null,
+            setupResponse: (array) ($tx['setup_response'] ?? []),
+            redirectResponse: (array) ($tx['redirect_response'] ?? []),
+            callbackResponse: (array) ($tx['callback_response'] ?? []),
+            signed: (array) ($tx['signed'] ?? []),
+            raw: (array) $tx,
         );
+    }
+
+    /**
+     * Parse the batch of transactions Spreedly POSTs to a callback URL. Every
+     * transaction that has changed since the last callback arrives in one payload.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<self>
+     */
+    public static function fromCallbackPayload(array $data): array
+    {
+        $transactions = $data['transactions'] ?? [];
+
+        if (! is_array($transactions)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (array $item): self => self::fromArray(['transaction' => $item]),
+            array_filter($transactions, is_array(...)),
+        ));
     }
 
     /**
@@ -130,6 +186,73 @@ final readonly class Transaction
             'gateway_specific_response_fields' => $this->gatewaySpecificResponseFields,
             'test' => $this->test,
             'reference_token' => $this->referenceToken,
+            'checkout_url' => $this->checkoutUrl,
+            'checkout_form' => $this->checkoutForm,
+            'redirect_url' => $this->redirectUrl,
+            'callback_url' => $this->callbackUrl,
+            'setup_response' => $this->setupResponse,
+            'redirect_response' => $this->redirectResponse,
+            'callback_response' => $this->callbackResponse,
+            'api_urls' => $this->apiUrls,
+            'signed' => $this->signed,
         ];
+    }
+
+    /**
+     * True when the cardholder still has to be sent somewhere — a 3DS2 challenge
+     * or an offsite payment page — before this transaction can settle.
+     */
+    public function requiresCardholderAction(): bool
+    {
+        return $this->state === TransactionState::Pending->value
+            && ($this->checkoutUrl !== null || $this->checkoutForm !== null);
+    }
+
+    /**
+     * Check that a transaction delivered over an untrusted channel really came from
+     * Spreedly, by recomputing the HMAC over the fields the payload says are signed.
+     *
+     * Returns false for an unsigned transaction, so a caller can treat "not signed"
+     * and "signed but tampered with" the same way.
+     *
+     * @param  string  $signingSecret  The environment's signing secret, never an access secret
+     *
+     * @see https://developer.spreedly.com/docs/signed-requests
+     */
+    public function verifySignature(string $signingSecret): bool
+    {
+        $signature = $this->signed['signature'] ?? null;
+        $fields = $this->signed['fields'] ?? null;
+        $algorithm = $this->signed['algorithm'] ?? null;
+
+        if (! is_string($signature) || ! is_string($fields) || ! is_string($algorithm)) {
+            return false;
+        }
+
+        if (! in_array($algorithm, hash_hmac_algos(), true)) {
+            return false;
+        }
+
+        $names = preg_split('/\s+/', trim($fields), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $values = array_map(
+            fn (string $name): string => $this->signableValue($this->raw[$name] ?? null),
+            $names,
+        );
+
+        return hash_equals(hash_hmac($algorithm, implode('|', $values), $signingSecret), $signature);
+    }
+
+    /**
+     * Render a field the way Spreedly did when it signed the payload: an absent or
+     * null field signs as empty, and a boolean as its literal name.
+     */
+    private function signableValue(mixed $value): string
+    {
+        return match (true) {
+            $value === null => '',
+            is_bool($value) => $value ? 'true' : 'false',
+            is_scalar($value) => (string) $value,
+            default => '',
+        };
     }
 }

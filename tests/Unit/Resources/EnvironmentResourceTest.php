@@ -77,11 +77,11 @@ test('regenerate signing secret sends POST to correct endpoint', function (): vo
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('environments/regenerate_signing_secret.json')
+        ->with('environments/EnvKey123/regenerate_signing_secret.json')
         ->andReturn(['signing_secret' => 'new_secret_abc123']);
 
     $resource = new EnvironmentResource($transporter);
-    $result = $resource->regenerateSigningSecret();
+    $result = $resource->regenerateSigningSecret('EnvKey123');
 
     expect($result)->toBeArray();
     expect($result['signing_secret'])->toBe('new_secret_abc123');
@@ -151,4 +151,16 @@ test('deleteAccessSecret sends DELETE to correct endpoint', function (): void {
     $result = $resource->deleteAccessSecret('env_key_abc123', 'AS1234567890abcdefghi');
 
     expect($result)->toBe([]);
+});
+
+test('list forwards the order and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('environments.json', ['order' => 'asc', 'count' => 25])
+        ->andReturn(['environments' => []]);
+
+    $resource = new EnvironmentResource($transporter);
+
+    expect($resource->list(order: 'asc', count: 25)->count())->toBe(0);
 });

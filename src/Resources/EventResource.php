@@ -24,11 +24,17 @@ final readonly class EventResource
      *
      * @return PaginatedCollection<Event>
      */
-    public function list(?string $sinceToken = null, string $order = 'desc'): PaginatedCollection
+    public function list(?string $sinceToken = null, string $order = 'desc', ?string $eventType = null, ?int $count = null): PaginatedCollection
     {
         $query = ['order' => $order];
         if ($sinceToken !== null) {
             $query['since_token'] = $sinceToken;
+        }
+        if ($eventType !== null) {
+            $query['event_type'] = $eventType;
+        }
+        if ($count !== null) {
+            $query['count'] = $count;
         }
 
         $response = $this->transporter->get('events.json', $query);
@@ -37,14 +43,14 @@ final readonly class EventResource
             (array) ($response['events'] ?? []),
         );
 
-        $lastToken = $events === [] ? null : end($events)->token;
-        $hasMore = count($events) >= 20;
+        $lastToken = $events === [] ? null : end($events)->id;
+        $hasMore = count($events) >= ($count ?? 20);
 
         return new PaginatedCollection(
             items: $events,
             sinceToken: $lastToken,
             hasMore: $hasMore,
-            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order),
+            fetcher: fn (string $since): PaginatedCollection => $this->list($since, $order, $eventType, $count),
         );
     }
 

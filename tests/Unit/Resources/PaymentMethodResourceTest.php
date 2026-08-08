@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Laratusk\Spreedly\Contracts\TransporterInterface;
 use Laratusk\Spreedly\DataTransferObjects\Collections\PaginatedCollection;
-use Laratusk\Spreedly\DataTransferObjects\Event;
 use Laratusk\Spreedly\DataTransferObjects\PaymentMethod;
+use Laratusk\Spreedly\DataTransferObjects\PaymentMethodEvent;
 use Laratusk\Spreedly\DataTransferObjects\Transaction;
 use Laratusk\Spreedly\Resources\PaymentMethodResource;
 
@@ -23,7 +23,7 @@ test('create sends POST request with payment method wrapper', function (): void 
 
     expect($pm)->toBeInstanceOf(PaymentMethod::class);
     expect($pm->token)->toBe('56wyNnSmuA6en32YnlLFoJNFLSI');
-    expect($pm->lastFourDigits)->toBe('4242');
+    expect($pm->lastFourDigits)->toBe('1111');
     expect($pm->cardType)->toBe('visa');
 });
 
@@ -65,7 +65,7 @@ test('retain returns transaction', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('put')
         ->once()
-        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/retain.json')
+        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/retain.json', [])
         ->andReturn($fixture);
 
     $resource = new PaymentMethodResource($transporter);
@@ -125,11 +125,11 @@ test('store sends POST to store endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/store.json', ['gateway_token' => 'gw_token'])
+        ->with('gateways/gw_token/store.json', ['transaction' => ['payment_method_token' => '56wyNnSmuA6en32YnlLFoJNFLSI']])
         ->andReturn($fixture);
 
     $resource = new PaymentMethodResource($transporter);
-    $tx = $resource->store('56wyNnSmuA6en32YnlLFoJNFLSI', ['gateway_token' => 'gw_token']);
+    $tx = $resource->store('gw_token', ['payment_method_token' => '56wyNnSmuA6en32YnlLFoJNFLSI']);
 
     expect($tx)->toBeInstanceOf(Transaction::class);
 });
@@ -169,7 +169,7 @@ test('deleteMetadata sends DELETE request', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('delete')
         ->once()
-        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/metadata.json')
+        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/metadata.json', [], [])
         ->andReturn([]);
 
     $resource = new PaymentMethodResource($transporter);
@@ -182,45 +182,46 @@ test('networkTokenizationMetadata sends GET request to correct endpoint', functi
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/network_tokenization_metadata.json')
-        ->andReturn(['network_tokenization_metadata' => ['network_token' => 'tok_123']]);
+        ->with('network_tokenization/card_metadata.json', ['payment_method_token' => '56wyNnSmuA6en32YnlLFoJNFLSI'])
+        ->andReturn(['card_metadata' => ['backgroundColor' => '0x7aff54']]);
 
     $resource = new PaymentMethodResource($transporter);
     $result = $resource->networkTokenizationMetadata('56wyNnSmuA6en32YnlLFoJNFLSI');
 
     expect($result)->toBeArray();
-    expect($result['network_tokenization_metadata']['network_token'])->toBe('tok_123');
+    expect($result['card_metadata']['backgroundColor'])->toBe('0x7aff54');
 });
 
 test('networkTokenizationStatus sends GET request to correct endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/network_tokenization_status.json')
-        ->andReturn(['network_tokenization_status' => ['status' => 'active']]);
+        ->with('network_tokenization/token_status.json', ['payment_method_token' => '56wyNnSmuA6en32YnlLFoJNFLSI'])
+        ->andReturn(['token_status' => 'ACTIVE']);
 
     $resource = new PaymentMethodResource($transporter);
     $result = $resource->networkTokenizationStatus('56wyNnSmuA6en32YnlLFoJNFLSI');
 
     expect($result)->toBeArray();
-    expect($result['network_tokenization_status']['status'])->toBe('active');
+    expect($result['token_status'])->toBe('ACTIVE');
 });
 
 test('listEvents returns paginated collection of events', function (): void {
-    $eventFixture = $this->loadFixture('events/show.json')['event'];
+    $eventFixture = $this->loadFixture('payment_methods/event.json')['payment_method_event'];
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
         ->with('payment_methods/events.json', [])
-        ->andReturn(['events' => [$eventFixture]]);
+        ->andReturn(['payment_method_events' => [$eventFixture]]);
 
     $resource = new PaymentMethodResource($transporter);
     $collection = $resource->listEvents();
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(1);
-    expect($collection->items[0])->toBeInstanceOf(Event::class);
+    expect($collection->items[0])->toBeInstanceOf(PaymentMethodEvent::class);
+    expect($collection->items[0]->token)->toBe('PME123abc456DEF789ghi');
 });
 
 test('listEvents passes since_token for pagination', function (): void {
@@ -228,7 +229,7 @@ test('listEvents passes since_token for pagination', function (): void {
     $transporter->shouldReceive('get')
         ->once()
         ->with('payment_methods/events.json', ['since_token' => 'tok123'])
-        ->andReturn(['events' => []]);
+        ->andReturn(['payment_method_events' => []]);
 
     $resource = new PaymentMethodResource($transporter);
     $collection = $resource->listEvents('tok123');
@@ -238,24 +239,24 @@ test('listEvents passes since_token for pagination', function (): void {
 });
 
 test('listEventsForPaymentMethod returns paginated collection', function (): void {
-    $eventFixture = $this->loadFixture('events/show.json')['event'];
+    $eventFixture = $this->loadFixture('payment_methods/event.json')['payment_method_event'];
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
         ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/events.json', [])
-        ->andReturn(['events' => [$eventFixture]]);
+        ->andReturn(['payment_method_events' => [$eventFixture]]);
 
     $resource = new PaymentMethodResource($transporter);
     $collection = $resource->listEventsForPaymentMethod('56wyNnSmuA6en32YnlLFoJNFLSI');
 
     expect($collection)->toBeInstanceOf(PaginatedCollection::class);
     expect($collection->count())->toBe(1);
-    expect($collection->items[0])->toBeInstanceOf(Event::class);
+    expect($collection->items[0])->toBeInstanceOf(PaymentMethodEvent::class);
 });
 
 test('retrieveEvent sends GET request to correct endpoint', function (): void {
-    $fixture = $this->loadFixture('events/show.json');
+    $fixture = $this->loadFixture('payment_methods/event.json');
 
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
@@ -266,7 +267,8 @@ test('retrieveEvent sends GET request to correct endpoint', function (): void {
     $resource = new PaymentMethodResource($transporter);
     $event = $resource->retrieveEvent('EVT123abc456DEF789ghi');
 
-    expect($event)->toBeInstanceOf(Event::class);
+    expect($event)->toBeInstanceOf(PaymentMethodEvent::class);
+    expect($event->token)->toBe('PME123abc456DEF789ghi');
 });
 
 test('updateGratis sends PUT request to update_gratis endpoint', function (): void {
@@ -282,4 +284,54 @@ test('updateGratis sends PUT request to update_gratis endpoint', function (): vo
     $pm = $resource->updateGratis('56wyNnSmuA6en32YnlLFoJNFLSI', ['first_name' => 'Jane']);
 
     expect($pm)->toBeInstanceOf(PaymentMethod::class);
+});
+
+test('list forwards the state, metadata and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('payment_methods.json', ['order' => 'desc', 'state' => 'retained', 'metadata' => 'plan:pro', 'count' => 100])
+        ->andReturn(['payment_methods' => []]);
+
+    $resource = new PaymentMethodResource($transporter);
+
+    expect($resource->list(state: 'retained', metadata: 'plan:pro', count: 100)->count())->toBe(0);
+});
+
+test('listEvents forwards the event filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('payment_methods/events.json', ['order' => 'asc', 'event_type' => 'card_updated', 'count' => 50, 'include_transactions' => true])
+        ->andReturn(['events' => []]);
+
+    $resource = new PaymentMethodResource($transporter);
+
+    expect($resource->listEvents(order: 'asc', eventType: 'card_updated', count: 50, includeTransactions: true)->count())->toBe(0);
+});
+
+test('retain can ask for a network token to be provisioned', function (): void {
+    $fixture = $this->loadFixture('transactions/purchase.json');
+
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('put')
+        ->once()
+        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/retain.json', ['provision_network_token' => true])
+        ->andReturn($fixture);
+
+    $resource = new PaymentMethodResource($transporter);
+
+    expect($resource->retain('56wyNnSmuA6en32YnlLFoJNFLSI', true))->toBeInstanceOf(Transaction::class);
+});
+
+test('deleteMetadata sends the keys to remove as a body', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('delete')
+        ->once()
+        ->with('payment_methods/56wyNnSmuA6en32YnlLFoJNFLSI/metadata.json', [], ['keys' => ['another_key', 'final_key']])
+        ->andReturn([]);
+
+    $resource = new PaymentMethodResource($transporter);
+
+    expect($resource->deleteMetadata('56wyNnSmuA6en32YnlLFoJNFLSI', ['another_key', 'final_key']))->toBe([]);
 });

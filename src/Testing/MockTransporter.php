@@ -65,7 +65,7 @@ final class MockTransporter implements TransporterInterface
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */
-    public function delete(string $endpoint, array $query = []): array
+    public function delete(string $endpoint, array $query = [], array $payload = []): array
     {
         return $this->resolve('DELETE', $endpoint);
     }

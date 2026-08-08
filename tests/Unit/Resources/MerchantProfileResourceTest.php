@@ -76,11 +76,11 @@ test('createProtectionProvider sends POST to correct endpoint', function (): voi
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('merchant_profiles/Mp1gI6fHgIuUkVnmUGPA3xoVyB/protection_provider.json', ['provider_type' => 'kount'])
-        ->andReturn(['protection_provider' => ['token' => 'PP123', 'provider_type' => 'kount']]);
+        ->with('protection/providers.json', ['merchant_profile_key' => 'Mp1gI6fHgIuUkVnmUGPA3xoVyB', 'type' => 'spreedly'])
+        ->andReturn(['protection_provider' => ['token' => 'PP123', 'type' => 'spreedly']]);
 
     $resource = new MerchantProfileResource($transporter);
-    $result = $resource->createProtectionProvider('Mp1gI6fHgIuUkVnmUGPA3xoVyB', ['provider_type' => 'kount']);
+    $result = $resource->createProtectionProvider('Mp1gI6fHgIuUkVnmUGPA3xoVyB', ['type' => 'spreedly']);
 
     expect($result)->toBeArray();
     expect($result['protection_provider']['token'])->toBe('PP123');
@@ -90,25 +90,25 @@ test('retrieveProtectionProvider sends GET to correct endpoint', function (): vo
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('merchant_profiles/Mp1gI6fHgIuUkVnmUGPA3xoVyB/protection_provider.json')
-        ->andReturn(['protection_provider' => ['token' => 'PP123', 'provider_type' => 'kount']]);
+        ->with('protection/providers/PP123.json')
+        ->andReturn(['protection_provider' => ['token' => 'PP123', 'type' => 'spreedly']]);
 
     $resource = new MerchantProfileResource($transporter);
-    $result = $resource->retrieveProtectionProvider('Mp1gI6fHgIuUkVnmUGPA3xoVyB');
+    $result = $resource->retrieveProtectionProvider('PP123');
 
     expect($result)->toBeArray();
-    expect($result['protection_provider']['provider_type'])->toBe('kount');
+    expect($result['protection_provider']['type'])->toBe('spreedly');
 });
 
 test('createScaProvider sends POST to correct endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('post')
         ->once()
-        ->with('merchant_profiles/Mp1gI6fHgIuUkVnmUGPA3xoVyB/sca_provider.json', ['provider_type' => 'stripe_radar'])
-        ->andReturn(['sca_provider' => ['token' => 'SCA123', 'provider_type' => 'stripe_radar']]);
+        ->with('sca/providers.json', ['merchant_profile_key' => 'Mp1gI6fHgIuUkVnmUGPA3xoVyB', 'type' => 'spreedly'])
+        ->andReturn(['sca_provider' => ['token' => 'SCA123', 'type' => 'spreedly']]);
 
     $resource = new MerchantProfileResource($transporter);
-    $result = $resource->createScaProvider('Mp1gI6fHgIuUkVnmUGPA3xoVyB', ['provider_type' => 'stripe_radar']);
+    $result = $resource->createScaProvider('Mp1gI6fHgIuUkVnmUGPA3xoVyB', ['type' => 'spreedly']);
 
     expect($result)->toBeArray();
     expect($result['sca_provider']['token'])->toBe('SCA123');
@@ -118,12 +118,24 @@ test('retrieveScaProvider sends GET to correct endpoint', function (): void {
     $transporter = Mockery::mock(TransporterInterface::class);
     $transporter->shouldReceive('get')
         ->once()
-        ->with('merchant_profiles/Mp1gI6fHgIuUkVnmUGPA3xoVyB/sca_provider.json')
-        ->andReturn(['sca_provider' => ['token' => 'SCA123', 'provider_type' => 'stripe_radar']]);
+        ->with('sca/providers/SCA123.json')
+        ->andReturn(['sca_provider' => ['token' => 'SCA123', 'type' => 'spreedly']]);
 
     $resource = new MerchantProfileResource($transporter);
-    $result = $resource->retrieveScaProvider('Mp1gI6fHgIuUkVnmUGPA3xoVyB');
+    $result = $resource->retrieveScaProvider('SCA123');
 
     expect($result)->toBeArray();
-    expect($result['sca_provider']['provider_type'])->toBe('stripe_radar');
+    expect($result['sca_provider']['type'])->toBe('spreedly');
+});
+
+test('list forwards the order and count filters', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('merchant_profiles.json', ['order' => 'asc', 'count' => 30])
+        ->andReturn(['merchant_profiles' => []]);
+
+    $resource = new MerchantProfileResource($transporter);
+
+    expect($resource->list(order: 'asc', count: 30)->count())->toBe(0);
 });

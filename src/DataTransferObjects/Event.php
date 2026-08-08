@@ -7,20 +7,27 @@ namespace Laratusk\Spreedly\DataTransferObjects;
 use Carbon\CarbonImmutable;
 
 /**
- * Represents a Spreedly event (webhook event).
+ * Represents an entry in a Spreedly environment's event log — what changed, and which
+ * object it changed.
+ *
+ * Not to be confused with a {@see PaymentMethodEvent}, which is a different resource
+ * with a different shape.
+ *
+ * @see https://developer.spreedly.com/reference/list-events
  */
 final readonly class Event
 {
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $raw
      */
     public function __construct(
-        public string $token,
+        public string $id,
+        public ?string $requestId,
         public string $eventType,
-        public string $state,
-        public array $data,
+        public ?string $objectType,
+        public ?string $objectKey,
         public CarbonImmutable $createdAt,
-        public CarbonImmutable $updatedAt,
+        public array $raw = [],
     ) {}
 
     /**
@@ -31,12 +38,13 @@ final readonly class Event
         $event = $data['event'] ?? $data;
 
         return new self(
-            token: (string) ($event['token'] ?? ''),
+            id: (string) ($event['id'] ?? ''),
+            requestId: isset($event['request_id']) ? (string) $event['request_id'] : null,
             eventType: (string) ($event['event_type'] ?? ''),
-            state: (string) ($event['state'] ?? ''),
-            data: (array) ($event['data'] ?? []),
+            objectType: isset($event['object_type']) ? (string) $event['object_type'] : null,
+            objectKey: isset($event['object_key']) ? (string) $event['object_key'] : null,
             createdAt: CarbonImmutable::parse($event['created_at'] ?? 'now'),
-            updatedAt: CarbonImmutable::parse($event['updated_at'] ?? 'now'),
+            raw: (array) $event,
         );
     }
 
@@ -46,12 +54,12 @@ final readonly class Event
     public function toArray(): array
     {
         return [
-            'token' => $this->token,
+            'id' => $this->id,
+            'request_id' => $this->requestId,
             'event_type' => $this->eventType,
-            'state' => $this->state,
-            'data' => $this->data,
+            'object_type' => $this->objectType,
+            'object_key' => $this->objectKey,
             'created_at' => $this->createdAt->toIso8601String(),
-            'updated_at' => $this->updatedAt->toIso8601String(),
         ];
     }
 }

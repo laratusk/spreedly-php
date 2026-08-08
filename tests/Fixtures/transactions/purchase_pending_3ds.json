@@ -1,0 +1,59 @@
+{
+  "transaction": {
+    "token": "TC7i2O0mhzpes1BaCaIdzGzHQuL",
+    "transaction_type": "Purchase",
+    "succeeded": false,
+    "state": "pending",
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:00:01Z",
+    "amount": 3004,
+    "currency_code": "EUR",
+    "on_test_gateway": true,
+    "retain_on_success": false,
+    "payment_method_token": "56wyNnSmuA6en32YnlLFoJNFLSI",
+    "payment_method": {
+      "token": "56wyNnSmuA6en32YnlLFoJNFLSI",
+      "storage_state": "retained",
+      "test": true,
+      "last_four_digits": "3886",
+      "first_six_digits": "455676",
+      "card_type": "visa",
+      "payment_method_type": "credit_card",
+      "eligible_for_card_updater": true,
+      "errors": [],
+      "created_at": "2024-01-15T09:55:00Z",
+      "updated_at": "2024-01-15T09:55:00Z",
+      "third_party_token": "pm_1OaBcDeFgHiJkLmN"
+    },
+    "gateway_token": "8XJtbE1p4NTZ6fFqwwn0GrkjEmW",
+    "message": "Pending",
+    "message_key": "messages.transaction_pending",
+    "callback_url": "https://merchant.example/spreedly/callback",
+    "redirect_url": "https://merchant.example/checkout/return",
+    "checkout_url": "https://core.spreedly.com/sprel/8XJtbE1p4NTZ6fFqwwn0GrkjEmW/checkout/TC7i2O0mhzpes1BaCaIdzGzHQuL",
+    "checkout_form": "<form action=\"\" method=\"POST\"><input name=\"PaReq\" value=\"\" type=\"hidden\"/></form>",
+    "setup_response": {
+      "success": true,
+      "message": "Checked enrollment status",
+      "error_code": null,
+      "checkout_url": "https://core.spreedly.com/sprel/8XJtbE1p4NTZ6fFqwwn0GrkjEmW/checkout/TC7i2O0mhzpes1BaCaIdzGzHQuL"
+    },
+    "redirect_response": {
+      "success": null,
+      "message": null,
+      "error_code": null
+    },
+    "callback_response": {
+      "success": null,
+      "message": null,
+      "error_code": null
+    },
+    "response": {
+      "success": false,
+      "message": "Pending",
+      "pending": true,
+      "error_code": null,
+      "error_detail": null
+    }
+  }
+}

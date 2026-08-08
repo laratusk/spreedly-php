@@ -5,6 +5,58 @@ All notable changes to `laratusk/spreedly` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-08-08
+
+### Changed — breaking
+
+Correcting the endpoints below changed what their arguments mean, so every call site needs review:
+
+| Method | Before | After |
+| --- | --- | --- |
+| `paymentMethods->store()` | payment method token | **gateway token**, with `payment_method_token` in the params |
+| `transactions->referencePurchase()` | gateway token | **the referenced transaction's token** |
+| `claim->create()` | params only | **transaction token** first |
+| `scaAuthentication->authenticate()` | params only | **SCA provider key** first |
+| `merchantProfiles->retrieve{Sca,Protection}Provider()` | merchant profile token | **the provider's own token** |
+| `certificates->generate()` | certificate token | **params** (`algorithm`, `cn`, …) |
+| `environments->regenerateSigningSecret()` | no argument | **environment key** |
+| `Transaction::$apiUrls` | `?string` | `array` |
+| `Event::$token` | `string` | **`Event::$id`** — the API calls it `id`, and `$state`, `$data` and `$updatedAt` are gone; no such fields exist |
+| `paymentMethods->listEvents()` / `listEventsForPaymentMethod()` / `retrieveEvent()` | `Event` | **`PaymentMethodEvent`** — a different resource with a different shape |
+| `TransporterInterface::delete()` | `(string, array)` | `(string, array, array)` — custom implementations must add the third parameter |
+
+### Added
+- **An integration suite that calls the real API** (`vendor/bin/pest --testsuite Integration`). Mocked tests can only confirm that the SDK sends the path the test already expects, which is how the wrong paths survived. The suite creates a gateway, payment method and transaction first, then exercises each endpoint with tokens that genuinely exist, so a 404 can only mean the path is wrong. It skips without `SPREEDLY_INTEGRATION=true`, so CI is unaffected
+- **Asynchronous transaction fields on `Transaction`** — `checkoutUrl`, `checkoutForm`, `redirectUrl`, `callbackUrl`, `setupResponse`, `redirectResponse` and `callbackResponse`. These are what a `pending` 3DS2 or offsite transaction carries, so the 3DS2 flow could not be driven from the typed DTO before: the SDK parsed the response and dropped every field describing where to send the cardholder
+- **`Transaction::requiresCardholderAction()`** — true while the transaction is `pending` and has a checkout URL or form to hand the cardholder
+- **`raw` on `Transaction` and `PaymentMethod`** — the payload each DTO was built from, so fields the SDK does not model yet (`third_party_token`, network-tokenisation detail, gateway-specific extras) remain reachable instead of being lost in parsing
+- **`TransactionState::Processing` and `TransactionState::GatewaySetupFailed`** — both documented transaction states that the enum could not represent
+- **Signed callback verification** — `Transaction::fromCallbackPayload()` parses the batch of transactions Spreedly POSTs to a `callback_url`, and `Transaction::verifySignature()` recomputes the HMAC over the signed fields in constant time. The `signed` block was previously dropped, so there was no way to tell a real callback from a forged one
+- **`PaymentMethodEvent`** — payment method events are a separate resource from environment events, with their own envelope (`payment_method_events`) and fields (`payment_method_key`, `event_data`, `state`, `message`). They had been forced through the `Event` DTO
+- **`raw` on `Event` and `PaymentMethodEvent`**, alongside `Certificate` and `ProtectionEvent`
+- **`raw` on `Certificate` and `ProtectionEvent`** — same escape hatch as `Transaction` and `PaymentMethod`, reaching `public_key_hash` on a generated certificate and the fraud-check detail on a protection event
+- **Documented list filters that the SDK never sent** — `count` on transactions, payment methods, events, payment method events, gateways, environments, merchant profiles, sub merchants, card refresher inquiries and protection events; `state` on transactions, payment methods, gateway transactions and protection events; `event_type` and `include_transactions` on events; `metadata` on payment methods; `order` on certificates, environments, merchant profiles, sub merchants, card refresher inquiries and protection events
+- **`PaymentMethodResource::deleteMetadata()` now takes the keys to remove**, and `TransporterInterface::delete()` accepts a request body, which the endpoint requires
+- **`PaymentMethodResource::retain()` accepts `provisionNetworkToken`**
+- **Transaction and payment method type enum cases** — `Authorization`, `Verification`, `OffsitePurchase`, `OffsiteAuthorization`, `ExportPaymentMethods`, `ReplacePaymentMethod`, `ContactCardHolder`, `NoUpdate`, `Inquiry`, `Sca::Authentication`, and `PaymentMethodType::Sprel`
+
+### Fixed
+- **Ten endpoints were addressed at paths the API does not serve** and would have failed against Spreedly. Verified against the official OpenAPI description:
+  - Composer: `composer/{authorize,purchase,verify}` → `transactions/{authorize,purchase,verify}`
+  - SCA authentication: `sca_authentication/authenticate` → `sca/providers/{sca_provider_key}/authenticate`, which now takes the provider key
+  - SCA and protection providers: `merchant_profiles/{token}/{sca,protection}_provider` → `sca/providers` and `protection/providers`, created with `merchant_profile_key` in the body and retrieved by the provider's own token
+  - Protection events: `protection_events` → `protection/events`
+  - Claims: `claim` → `protection/{transaction_token}/claims`, which now takes the transaction token
+  - Network tokenization: `payment_methods/{token}/network_tokenization_{metadata,status}` → `network_tokenization/{card_metadata,token_status}?payment_method_token=`
+  - Store at gateway: `payment_methods/{token}/store` → `gateways/{gateway_token}/store`, which now takes the gateway token
+  - Reference purchase: it posted a fresh gateway purchase, and now posts `transactions/{transaction_token}/purchase` against the referenced transaction
+  - Certificate generation: `certificates/{token}/generate` → `certificates/generate`, which takes the algorithm and subject rather than a token
+  - Signing secret: `environments/regenerate_signing_secret` → `environments/{environment_key}/regenerate_signing_secret`
+  - Card refresher listing: `card_refresher/inquiry` → `card_refresher/inquiries`, and creating one now uses the `card_refresher_inquiry` request envelope
+- **`paymentMethods->create()` returned an empty payment method.** Creating one answers with a `transaction` envelope carrying the payment method, not a bare `payment_method`, so `PaymentMethod::fromArray()` found nothing and every field came back empty — including the token. The unit fixture had been written by hand with the wrong envelope, so the mocked test agreed with the bug. Found by the new integration suite, and the fixture is now a captured real response
+- **Both event endpoints parsed to empty objects.** `/v1/events` returns `id`, `request_id`, `event_type`, `object_type` and `object_key` — the `Event` DTO read `token`, `state` and `data`, none of which the API sends, so every listed event came back blank. Payment method events were read from an `events` envelope that does not exist (it is `payment_method_events`) and mapped onto the same wrong DTO. Both fixtures had been hand-written, so the mocked tests agreed with the bugs. Found by the new integration suite
+- **`Transaction::$apiUrls` is an array**. Spreedly returns `api_urls` as a hash, so casting it to a string emitted an "Array to string conversion" warning and stored the literal `"Array"`
+
 ## [1.4.0] - 2026-08-05
 
 ### Added

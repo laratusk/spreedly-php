@@ -164,3 +164,27 @@ test('supportedGateways returns raw array from API', function (): void {
     expect($result)->toBeArray();
     expect($result['gateways'])->toHaveCount(2);
 });
+
+test('list forwards the count filter', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('gateways.json', ['order' => 'desc', 'count' => 50])
+        ->andReturn(['gateways' => []]);
+
+    $resource = new GatewayResource($transporter);
+
+    expect($resource->list(count: 50)->count())->toBe(0);
+});
+
+test('transactions forwards the state filter', function (): void {
+    $transporter = Mockery::mock(TransporterInterface::class);
+    $transporter->shouldReceive('get')
+        ->once()
+        ->with('gateways/gw_token/transactions.json', ['order' => 'desc', 'state' => 'succeeded'])
+        ->andReturn(['transactions' => []]);
+
+    $resource = new GatewayResource($transporter);
+
+    expect($resource->transactions('gw_token', state: 'succeeded')->count())->toBe(0);
+});
